@@ -8,6 +8,7 @@ import CategoryNav from './components/CategoryNav'
 import MenuSection from './components/MenuSection'
 import CartDrawer from './components/CartDrawer'
 import AdminPanel from './components/AdminPanel'
+import ProductModal from './components/ProductModal'
 
 const AVAIL_KEY = 'voneis_availability_v1'
 
@@ -22,6 +23,8 @@ export default function App() {
   })
 
   const [cart, setCart] = useState({})
+  const [notes, setNotes] = useState({})
+  const [selectedId, setSelectedId] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [adminMode, setAdminMode] = useState(false)
   const [activeId, setActiveId] = useState(menuData[0].id)
@@ -52,7 +55,7 @@ export default function App() {
     const map = {}
     menu.forEach((cat) =>
       cat.items.forEach((it) => {
-        map[it.id] = { ...it, catName: cat.name, emoji: cat.emoji }
+        map[it.id] = { ...it, catId: cat.id, catName: cat.name, emoji: cat.emoji }
       })
     )
     return map
@@ -62,6 +65,18 @@ export default function App() {
     (id) => {
       if (!flatItems[id]?.available) return
       setCart((c) => ({ ...c, [id]: (c[id] || 0) + 1 }))
+      setBump((b) => b + 1)
+    },
+    [flatItems]
+  )
+
+  const addWithOptions = useCallback(
+    (id, qty, note) => {
+      if (!flatItems[id]?.available) return
+      setCart((c) => ({ ...c, [id]: (c[id] || 0) + qty }))
+      if (note && (note.colher || note.obs)) {
+        setNotes((n) => ({ ...n, [id]: note }))
+      }
       setBump((b) => b + 1)
     },
     [flatItems]
@@ -100,10 +115,18 @@ export default function App() {
         .map(([id, qty]) => {
           const it = flatItems[id]
           if (!it) return null
-          return { id: Number(id), name: it.name, price: it.price, qty, catName: it.catName, emoji: it.emoji }
+          return {
+            id: Number(id),
+            name: it.name,
+            price: it.price,
+            qty,
+            catName: it.catName,
+            emoji: it.emoji,
+            note: notes[id] || null,
+          }
         })
         .filter(Boolean),
-    [cart, flatItems]
+    [cart, flatItems, notes]
   )
 
   const total = useMemo(() => lines.reduce((s, l) => s + l.price * l.qty, 0), [lines])
@@ -161,47 +184,30 @@ export default function App() {
             onRemove={removeItem}
             adminMode={adminMode}
             onToggle={toggleAvailability}
+            onOpen={setSelectedId}
           />
         ))}
+
+        <footer className="mt-4 px-4 pb-6 text-center">
+          <div className="mx-auto flex max-w-xs items-center gap-3">
+            <span className="ornament-line" aria-hidden="true" />
+            <span className="select-none text-sm text-accent/50">🍰</span>
+            <span className="ornament-line" aria-hidden="true" />
+          </div>
+          <p className="mt-3 font-sans text-[11px] italic text-ink/40">
+            Fotos meramente ilustrativas.
+          </p>
+          <p className="mt-1 font-display text-base italic text-ink/55">
+            Vó Neis Confeitaria — feito com amor ♥
+          </p>
+        </footer>
       </main>
 
-      <AnimatePresence>
-        {count > 0 && !adminMode && (
-          <motion.button
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 420, damping: 24 }}
-            onClick={() => setDrawerOpen(true)}
-            className="fixed bottom-5 right-5 z-30 flex items-center gap-3 rounded-full bg-accent py-3 pl-4 pr-5 text-white shadow-cardHover"
-            style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
-          >
-            <div className="relative">
-              <ShoppingBag size={22} />
-              <motion.span
-                key={bump}
-                initial={{ scale: 1 }}
-                animate={{ scale: [1, 1.4, 1] }}
-                transition={{ duration: 0.3 }}
-                className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 font-sans text-[11px] font-bold text-accent"
-              >
-                {count}
-              </motion.span>
-            </div>
-            <span className="font-sans text-sm font-semibold">{brl(total)}</span>
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      <CartDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        lines={lines}
-        total={total}
-        onAdd={addItem}
-        onRemove={removeItem}
-        onDelete={deleteItem}
+      <ProductModal
+        item={selectedId ? flatItems[selectedId] : null}
+        onClose={() => setSelectedId(null)}
+        onAddToCart={addWithOptions}
       />
-    </div>
-  )
-}
+
+      <AnimatePresence>
+      

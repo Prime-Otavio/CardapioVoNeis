@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Minus, Check } from 'lucide-react'
 import { brl } from '../utils'
 
-export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode, onToggle }) {
+export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode, onToggle, onOpen }) {
   const [pulse, setPulse] = useState(false)
   const [showCheck, setShowCheck] = useState(false)
   const checkTimer = useRef(null)
@@ -17,6 +17,7 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
   }
 
   const unavailable = !item.available && !adminMode
+  const clickable = !unavailable && !adminMode
 
   return (
     <motion.article
@@ -29,19 +30,24 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
       transition={pulse ? { duration: 0.24, ease: 'easeInOut' } : {}}
       onAnimationComplete={() => setPulse(false)}
       whileHover={!unavailable ? { y: -3 } : {}}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-card shadow-card transition-shadow duration-300 hover:shadow-cardHover"
+      className="group relative flex flex-col overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-accent/10 transition-shadow duration-300 hover:shadow-cardHover"
     >
-      <div className="relative aspect-square overflow-hidden bg-accentLight/60">
+      <div
+        className={`relative aspect-square overflow-hidden bg-accentLight/60 ${clickable ? 'cursor-pointer' : ''}`}
+        onClick={() => clickable && onOpen?.(item.id)}
+        role="button"
+        aria-label={`Ver detalhes de ${item.name}`}
+      >
         {item.image ? (
           <img
             src={item.image}
             alt={item.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-accent/70">
-            <span className="text-3xl">{emoji}</span>
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-accent/70">
+            <span className="text-4xl drop-shadow-sm">{emoji}</span>
             <span className="font-sans text-[11px] font-medium tracking-wide text-ink/40">
               Foto em breve
             </span>
@@ -57,11 +63,18 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
         )}
       </div>
 
-      <div className="flex flex-1 flex-col px-3 py-3">
-        <h3 className="font-display text-lg italic leading-tight text-ink">{item.name}</h3>
-        <p className="mt-1 font-sans text-sm font-semibold text-accent">{brl(item.price)}</p>
+      <div className="flex flex-1 flex-col items-center px-2.5 pb-3 pt-2.5 text-center">
+        <div
+          className={`flex w-full flex-col items-center ${clickable ? 'cursor-pointer' : ''}`}
+          onClick={() => clickable && onOpen?.(item.id)}
+        >
+          <h3 className="item-name w-full font-display text-[17px] italic leading-tight text-ink">
+            {item.name}
+          </h3>
+          <p className="mt-1 font-sans text-sm font-bold text-accent">{brl(item.price)}</p>
+        </div>
 
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-2.5 flex w-full items-center justify-center">
           {adminMode ? (
             <button
               onClick={() => onToggle(item.id)}
@@ -83,21 +96,21 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
               </span>
             </button>
           ) : qty > 0 ? (
-            <div className="flex w-full items-center justify-between">
+            <div className="flex h-9 w-full items-center justify-between">
               <button
                 onClick={() => onRemove(item.id)}
                 disabled={unavailable}
                 aria-label="Remover um"
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-accent/40 text-accent transition-colors hover:bg-accentLight disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-accent/40 text-accent transition-colors hover:bg-accentLight disabled:opacity-40"
               >
                 <Minus size={16} />
               </button>
-              <span className="font-sans text-sm font-semibold text-ink">{qty}</span>
+              <span className="font-sans text-sm font-bold text-ink">{qty}</span>
               <button
                 onClick={handleAdd}
                 disabled={unavailable}
                 aria-label="Adicionar um"
-                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-accent text-white transition-colors hover:brightness-105 disabled:opacity-40"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white transition-colors hover:brightness-105 disabled:opacity-40"
               >
                 <Plus size={16} />
                 <CheckBadge show={showCheck} />
@@ -107,32 +120,7 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
             <button
               onClick={handleAdd}
               disabled={unavailable}
-              className="relative flex w-full items-center justify-center gap-1.5 rounded-full bg-accent px-3 py-2 font-sans text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:opacity-40"
+              className="relative flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-accent px-3 font-sans text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:opacity-40"
             >
               <Plus size={16} /> Adicionar
-              <CheckBadge show={showCheck} />
-            </button>
-          )}
-        </div>
-      </div>
-    </motion.article>
-  )
-}
-
-function CheckBadge({ show }) {
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.span
-          initial={{ opacity: 0, scale: 0.6 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.6 }}
-          transition={{ duration: 0.18 }}
-          className="absolute inset-0 flex items-center justify-center rounded-full bg-whatsapp text-white"
-        >
-          <Check size={16} strokeWidth={3} />
-        </motion.span>
-      )}
-    </AnimatePresence>
-  )
-}
+              <CheckBadge show={

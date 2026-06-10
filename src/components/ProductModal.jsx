@@ -5,7 +5,7 @@ import { brl } from '../utils'
 import { WHATSAPP_NUMBER } from '../config'
 
 // Categorias em que faz sentido oferecer colherzinha
-const SPOON_CATS = ['fatias', 'delicias-pote']
+const SPOON_CATS = ['fatias', 'delicias-pote', 'copos']
 
 export default function ProductModal({ item, onClose, onAddToCart }) {
   const [qty, setQty] = useState(1)
@@ -104,6 +104,11 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                 <p className="mt-2 font-sans text-sm leading-relaxed text-ink/60">{item.desc}</p>
               )}
               <p className="mt-2 font-sans text-xl font-bold text-accent">{brl(item.price)}</p>
+              {item.image && (
+                <p className="mt-1 font-sans text-[10px] italic text-ink/35">
+                  Imagem meramente ilustrativa
+                </p>
+              )}
 
               <div className="mt-4 flex items-center justify-between rounded-2xl bg-card p-3 shadow-card">
                 <span className="font-sans text-sm font-medium text-ink/70">Quantidade</span>
@@ -170,14 +175,4 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                   onClick={orderNow}
                   className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-sans text-sm font-semibold text-white transition-transform active:scale-[0.98]"
                   style={{ backgroundColor: '#25D366' }}
-                >
-                  <MessageCircle size={17} /> Pedir agora
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
+             

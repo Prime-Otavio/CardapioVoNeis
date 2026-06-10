@@ -22,6 +22,8 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
       msg += `\n*${emoji} ${catName}*\n`
       rows.forEach((r) => {
         msg += `- ${r.qty}x ${r.name} — ${brl(r.qty * r.price)}\n`
+        if (r.note?.colher) msg += `  🥄 Com colherzinha\n`
+        if (r.note?.obs) msg += `  📝 Obs: ${r.note.obs}\n`
       })
     })
     msg += '━━━━━━━━━━━━━\n'
@@ -82,6 +84,12 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-display text-base italic text-ink">{l.name}</p>
                         <p className="font-sans text-xs text-ink/50">{brl(l.price)} cada</p>
+                        {l.note?.colher && (
+                          <p className="font-sans text-[11px] text-ink/45">🥄 Com colherzinha</p>
+                        )}
+                        {l.note?.obs && (
+                          <p className="truncate font-sans text-[11px] text-ink/45">📝 {l.note.obs}</p>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button
@@ -123,17 +131,4 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
                   <span className="font-sans text-xl font-bold text-ink">{brl(total)}</span>
                 </div>
                 <button
-                  onClick={sendWhatsApp}
-                  className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-sans text-base font-semibold text-white transition-transform active:scale-[0.98]"
-                  style={{ backgroundColor: '#25D366' }}
-                >
-                  <MessageCircle size={20} /> Pedir via WhatsApp
-                </button>
-              </div>
-            )}
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
+                  onClick={sen
