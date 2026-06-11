@@ -44,6 +44,7 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
             alt={item.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-accent/70">
@@ -123,4 +124,4 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
               className="relative flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-accent px-3 font-sans text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:opacity-40"
             >
               <Plus size={16} /> Adicionar
-              <CheckBadge show={
+   

@@ -79,7 +79,7 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
           >
             <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-accentLight/60">
               {item.image ? (
-                <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                <img src={item.image} alt={item.name} className="h-full w-full object-cover" decoding="async" />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-accent/70">
                   <span className="text-6xl">{item.emoji}</span>
@@ -174,5 +174,4 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                 <button
                   onClick={orderNow}
                   className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-sans text-sm font-semibold text-white transition-transform active:scale-[0.98]"
-                  style={{ backgroundColor: '#25D366' }}
-             
+                  style={{ backgroundColor: '#25D366'
