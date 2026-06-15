@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getTodaySession, listDailyStock, listWithdrawals, addWithdrawal } from '../lib/cash'
+import { getTodaySession, listDailyStock, listWithdrawals, addWithdrawal, reopenCash } from '../lib/cash'
 import { listSales, computeTotals } from '../lib/sales'
 import OpenCashScreen from './OpenCashScreen'
 import NewSaleScreen from './NewSaleScreen'
@@ -85,10 +85,21 @@ export default function DashboardPage() {
         <p className="mt-2 font-sans text-sm capitalize text-ink/50">{hoje()}</p>
         <p className="mt-4 font-sans text-sm text-ink/60">
           {jaFechou
-            ? 'O caixa de hoje já foi fechado. Amanhã você abre um novo.'
+            ? 'O caixa de hoje já foi fechado. Se fechou por engano, você pode reabri-lo e continuar as vendas.'
             : 'Para começar o dia, abra o caixa e diga quantos bolos você fez hoje.'}
         </p>
-        {!jaFechou && (
+        {jaFechou ? (
+          <button
+            onClick={async () => {
+              if (!confirm('Reabrir o caixa de hoje e voltar a lançar vendas?')) return
+              await reopenCash(session.id)
+              reload()
+            }}
+            className="mt-6 rounded-full bg-accent px-8 py-3 font-sans text-sm font-semibold text-white hover:brightness-105 active:scale-[0.98]"
+          >
+            Reabrir caixa de hoje
+          </button>
+        ) : (
           <button
             onClick={() => setMode('opening')}
             className="mt-6 rounded-full bg-accent px-8 py-3 font-sans text-sm font-semibold text-white hover:brightness-105 active:scale-[0.98]"
