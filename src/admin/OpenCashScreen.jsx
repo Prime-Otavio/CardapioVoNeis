@@ -10,6 +10,7 @@ export default function OpenCashScreen({ onOpened }) {
   const [qty, setQty] = useState({}) // { product_id: number }
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
+  const [openingFloat, setOpeningFloat] = useState('')
 
   useEffect(() => {
     listProducts().then(setProducts).catch((e) => console.error(e))
@@ -42,7 +43,8 @@ export default function OpenCashScreen({ onOpened }) {
     setBusy(true)
     try {
       const items = selected.map(([product_id, qty_initial]) => ({ product_id, qty_initial }))
-      const session = await openCash(items)
+      const floatNum = openingFloat === '' ? 0 : Number(openingFloat)
+      const session = await openCash(items, floatNum)
       onOpened(session)
     } catch (e) {
       console.error(e)
@@ -113,7 +115,17 @@ export default function OpenCashScreen({ onOpened }) {
       </ul>
 
       <div className="fixed bottom-0 left-60 right-0 border-t border-ink/10 bg-white/95 px-7 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center justify-between">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <label className="font-sans text-sm text-ink/60">Troco inicial R$</label>
+            <input
+              value={openingFloat}
+              onChange={(e) => setOpeningFloat(e.target.value.replace(',', '.'))}
+              inputMode="decimal"
+              placeholder="0,00"
+              className="w-24 rounded-lg border border-ink/15 px-2 py-1.5 font-sans text-sm outline-none focus:border-accent"
+            />
+          </div>
           <span className="font-sans text-sm text-ink/60">
             {selected.length === 0
               ? 'Nenhum produto selecionado'

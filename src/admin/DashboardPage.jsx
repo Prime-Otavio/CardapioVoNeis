@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getTodaySession, listDailyStock, closeCash } from '../lib/cash'
+import { getTodaySession, listDailyStock, listWithdrawals, addWithdrawal } from '../lib/cash'
 import { listSales, computeTotals } from '../lib/sales'
 import OpenCashScreen from './OpenCashScreen'
 import NewSaleScreen from './NewSaleScreen'
+import CloseCashScreen from './CloseCashScreen'
 import { brl } from '../utils'
-import { CakeSlice, Sun, Lock, Plus } from 'lucide-react'
+import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle } from 'lucide-react'
 
 const hoje = () =>
   new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -15,17 +16,33 @@ export default function DashboardPage() {
   const [mode, setMode] = useState('view') // 'view' | 'opening' | 'selling'
   const [stock, setStock] = useState([])
   const [sales, setSales] = useState([])
+  const [withdrawals, setWithdrawals] = useState([])
 
   async function reload() {
     setLoading(true)
     const s = await getTodaySession()
     setSession(s)
     if (s) {
-      const [st, sl] = await Promise.all([listDailyStock(s.id), listSales(s.id)])
+      const [st, sl, wd] = await Promise.all([
+        listDailyStock(s.id),
+        listSales(s.id),
+        listWithdrawals(s.id),
+      ])
       setStock(st)
       setSales(sl)
+      setWithdrawals(wd)
     }
     setLoading(false)
+  }
+
+  async function sangria() {
+    const valor = prompt('Valor da retirada (R$):')
+    if (!valor) return
+    const n = Number(String(valor).replace(',', '.'))
+    if (!n || n <= 0) return
+    const motivo = prompt('Motivo da retirada (opcional):') || null
+    await addWithdrawal(session.id, n, motivo)
+    reload()
   }
   useEffect(() => {
     reload().catch((e) => {
@@ -97,6 +114,21 @@ export default function DashboardPage() {
     )
   }
 
+  if (mode === 'closing') {
+    return (
+      <CloseCashScreen
+        session={session}
+        sales={sales}
+        withdrawals={withdrawals}
+        onCancel={() => setMode('view')}
+        onClosed={() => {
+          setMode('view')
+          reload()
+        }}
+      />
+    )
+  }
+
   // Caixa aberto — visão do dia
   return (
     <div>
@@ -116,11 +148,13 @@ export default function DashboardPage() {
             <Plus size={16} /> Nova venda
           </button>
           <button
-            onClick={async () => {
-              if (!confirm('Fechar o caixa de hoje?')) return
-              await closeCash(session.id)
-              reload()
-            }}
+            onClick={sangria}
+            className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
+          >
+            <ArrowDownCircle size={15} /> Sangria
+          </button>
+          <button
+            onClick={() => setMode('closing')}
             className="rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
           >
             Fechar caixa
@@ -134,6 +168,13 @@ export default function DashboardPage() {
         <Metric label="Vendas" value={totais.nVendas} />
         <Metric label="Ticket médio" value={brl(totais.ticket)} />
       </div>
+
+      {withdrawals.length > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 font-sans text-sm text-amber-800">
+          {withdrawals.length} sangria(s) hoje ·{' '}
+          {brl(withdrawals.reduce((s, w) => s + Number(w.amount), 0))} retirado
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="overflow-hidden rounded-xl border border-ink/10 bg-white">

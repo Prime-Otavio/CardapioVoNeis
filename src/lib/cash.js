@@ -12,14 +12,14 @@ export async function getTodaySession() {
   return data
 }
 
-// Abre o caixa de hoje com os produtos escolhidos.
-// items: [{ product_id, qty_initial }]
-export async function openCash(items) {
+// Abre o caixa de hoje com os produtos escolhidos e o troco inicial.
+// items: [{ product_id, qty_initial }] · openingFloat: número
+export async function openCash(items, openingFloat = 0) {
   const today = new Date().toISOString().slice(0, 10)
 
   const { data: session, error: sErr } = await supabase
     .from('cash_sessions')
-    .insert({ business_date: today, status: 'aberto' })
+    .insert({ business_date: today, status: 'aberto', opening_float: openingFloat })
     .select()
     .single()
   if (sErr) throw sErr
@@ -38,11 +38,27 @@ export async function openCash(items) {
   return session
 }
 
-// Fecha a sessão de caixa
-export async function closeCash(sessionId) {
+// Fecha a sessão de caixa com a conferência do dinheiro.
+// countedCash = quanto foi contado na gaveta; diff = contado - esperado.
+export async function closeCash(sessionId, { countedCash = null, diff = null, notes = null } = {}) {
   const { error } = await supabase
     .from('cash_sessions')
-    .update({ status: 'fechado', closed_at: new Date().toISOString() })
+    .update({
+      status: 'fechado',
+      closed_at: new Date().toISOString(),
+      counted_cash: countedCash,
+      closing_diff: diff,
+      closing_notes: notes,
+    })
+    .eq('id', sessionId)
+  if (error) throw error
+}
+
+// Reabre uma sessão fechada (caso tenha fechado sem querer)
+export async function reopenCash(sessionId) {
+  const { error } = await supabase
+    .from('cash_sessions')
+    .update({ status: 'aberto', closed_at: null })
     .eq('id', sessionId)
   if (error) throw error
 }
@@ -52,6 +68,24 @@ export async function listDailyStock(sessionId) {
   const { data, error } = await supabase
     .from('daily_stock')
     .select('*, products(name, price, cost)')
+    .eq('cash_session_id', sessionId)
+    .order('created_at')
+  if (error) throw error
+  return data
+}
+
+// Sangrias / retiradas
+export async function addWithdrawal(sessionId, amount, reason) {
+  const { error } = await supabase
+    .from('cash_withdrawals')
+    .insert({ cash_session_id: sessionId, amount, reason })
+  if (error) throw error
+}
+
+export async function listWithdrawals(sessionId) {
+  const { data, error } = await supabase
+    .from('cash_withdrawals')
+    .select('*')
     .eq('cash_session_id', sessionId)
     .order('created_at')
   if (error) throw error
