@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { signOut } from '../lib/auth'
-import { LayoutDashboard, Package, Tags, CakeSlice, LogOut } from 'lucide-react'
+import { LayoutDashboard, Package, Tags, FlaskConical, ClipboardList, CakeSlice, LogOut } from 'lucide-react'
 
 const link = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm transition-colors ${
@@ -35,6 +35,12 @@ export default function AdminLayout() {
         </NavLink>
         <NavLink to="/admin/categorias" className={link}>
           <Tags size={18} /> Categorias
+        </NavLink>
+        <NavLink to="/admin/ingredientes" className={link}>
+          <FlaskConical size={18} /> Ingredientes
+        </NavLink>
+        <NavLink to="/admin/ficha-tecnica" className={link}>
+          <ClipboardList size={18} /> Ficha técnica
         </NavLink>
 
         <p className="mt-4 px-3 pb-1 font-sans text-[10px] font-semibold uppercase tracking-wider text-ink/30">

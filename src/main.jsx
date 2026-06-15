@@ -9,6 +9,8 @@ import LoginPage from './admin/LoginPage'
 import DashboardPage from './admin/DashboardPage'
 import ProductsPage from './admin/ProductsPage'
 import CategoriesPage from './admin/CategoriesPage'
+import IngredientsPage from './admin/IngredientsPage'
+import RecipePage from './admin/RecipePage'
 import './index.css'
 import 'lenis/dist/lenis.css'
 
@@ -30,6 +32,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route index element={<DashboardPage />} />
             <Route path="produtos" element={<ProductsPage />} />
             <Route path="categorias" element={<CategoriesPage />} />
+            <Route path="ingredientes" element={<IngredientsPage />} />
+            <Route path="ficha-tecnica" element={<RecipePage />} />
           </Route>
         </Routes>
       </BrowserRouter>
