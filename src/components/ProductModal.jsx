@@ -4,12 +4,15 @@ import { X, Plus, Minus, MessageCircle, ShoppingBag, UtensilsCrossed } from 'luc
 import { brl } from '../utils'
 import { WHATSAPP_NUMBER } from '../config'
 
-// Categorias em que faz sentido oferecer colherzinha
-const SPOON_CATS = ['fatias', 'delicias-pote', 'copos']
+// Categorias em que faz sentido oferecer colherzinha e calda
+const SPOON_CATS = ['fatias', 'potes-copos']
+const CALDA_CATS = ['fatias', 'potes-copos']
+const CALDAS = ['Chocolate', 'Ninho']
 
 export default function ProductModal({ item, onClose, onAddToCart }) {
   const [qty, setQty] = useState(1)
   const [colher, setColher] = useState(false)
+  const [calda, setCalda] = useState(null)
   const [obs, setObs] = useState('')
 
   const open = !!item
@@ -18,28 +21,37 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
     if (open) {
       setQty(1)
       setColher(false)
+      setCalda(null)
       setObs('')
     }
   }, [open, item?.id])
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
-    if (open) window.addEventListener('keydown', onKey)
-    document.body.style.overflow = open ? 'hidden' : ''
+    if (open) {
+      window.addEventListener('keydown', onKey)
+      // Trava o scroll compensando a largura da barra — sem "pulo" de layout
+      const sw = window.innerWidth - document.documentElement.clientWidth
+      document.body.style.overflow = 'hidden'
+      if (sw > 0) document.body.style.paddingRight = `${sw}px`
+    }
     return () => {
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
+      document.body.style.paddingRight = ''
     }
   }, [open, onClose])
 
   if (!item) return null
 
   const showSpoon = SPOON_CATS.includes(item.catId)
+  const showCalda = CALDA_CATS.includes(item.catId)
   const subtotal = item.price * qty
 
   const buildDirectMessage = () => {
     let msg = '🍰 *Olá! Gostaria de fazer um pedido:*\n\n'
     msg += `- ${qty}x ${item.name} — ${brl(subtotal)}\n`
+    if (showCalda && calda) msg += `🍫 Calda: ${calda}\n`
     if (showSpoon && colher) msg += '🥄 Com colherzinha, por favor\n'
     if (obs.trim()) msg += `📝 Obs: ${obs.trim()}\n`
     msg += `\n💰 *Total: ${brl(subtotal)}*\n\nAguardo confirmação! 😊`
@@ -52,7 +64,11 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
   }
 
   const addToCart = () => {
-    onAddToCart(item.id, qty, { colher: showSpoon && colher, obs: obs.trim() })
+    onAddToCart(item.id, qty, {
+      colher: showSpoon && colher,
+      calda: showCalda ? calda : null,
+      obs: obs.trim(),
+    })
     onClose()
   }
 
@@ -65,8 +81,7 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-40 bg-ink/40"
-            style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+            className="fixed inset-0 z-40 bg-ink/50"
           />
           <motion.div
             initial={{ y: '100%' }}
@@ -95,7 +110,7 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div data-lenis-prevent className="flex-1 overflow-y-auto px-5 py-4">
               <p className="font-sans text-[11px] font-semibold uppercase tracking-wider text-accent">
                 {item.emoji} {item.catName}
               </p>
@@ -131,6 +146,27 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                 </div>
               </div>
 
+              {showCalda && (
+                <div className="mt-3 rounded-2xl bg-card p-3 shadow-card">
+                  <p className="font-sans text-sm font-medium text-ink/70">Calda por cima?</p>
+                  <div className="mt-2 flex gap-2">
+                    {[null, ...CALDAS].map((c) => (
+                      <button
+                        key={c ?? 'sem'}
+                        onClick={() => setCalda(c)}
+                        className={`flex-1 rounded-full border px-2 py-2 font-sans text-xs font-semibold transition-colors ${
+                          calda === c
+                            ? 'border-accent bg-accent text-white'
+                            : 'border-accent/30 bg-background text-ink/60 hover:bg-accentLight'
+                        }`}
+                      >
+                        {c === null ? 'Sem calda' : c === 'Chocolate' ? '🍫 Chocolate' : '🥛 Ninho'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {showSpoon && (
                 <button
                   onClick={() => setColher((c) => !c)}
@@ -153,14 +189,21 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                 </button>
               )}
 
-              <textarea
-                value={obs}
-                onChange={(e) => setObs(e.target.value)}
-                rows={2}
-                maxLength={200}
-                placeholder="Alguma observação? (ex.: sem granulado, escrever parabéns...)"
-                className="mt-3 w-full resize-none rounded-2xl border border-accent/20 bg-card p-3 font-sans text-sm text-ink shadow-card outline-none placeholder:text-ink/35 focus:border-accent"
-              />
+              <div className="relative mt-3">
+                <textarea
+                  value={obs}
+                  onChange={(e) => setObs(e.target.value)}
+                  rows={2}
+                  maxLength={200}
+                  placeholder="Alguma observação? (ex.: sem granulado, escrever parabéns...)"
+                  className="w-full resize-none rounded-2xl border border-accent/20 bg-card p-3 pb-5 font-sans text-sm text-ink shadow-card outline-none placeholder:text-ink/35 focus:border-accent"
+                />
+                {obs.length > 0 && (
+                  <span className="pointer-events-none absolute bottom-2.5 right-3 font-sans text-[10px] text-ink/35">
+                    {obs.length}/200
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="shrink-0 border-t border-accent/15 bg-background px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -174,4 +217,15 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                 <button
                   onClick={orderNow}
                   className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-sans text-sm font-semibold text-white transition-transform active:scale-[0.98]"
-                  style={{ backgroundColor: '#25D366'
+                  style={{ backgroundColor: '#25D366' }}
+                >
+                  <MessageCircle size={17} /> Pedir agora
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}

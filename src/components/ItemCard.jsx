@@ -1,9 +1,8 @@
-import { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useRef, memo } from 'react'
 import { Plus, Minus, Check } from 'lucide-react'
 import { brl } from '../utils'
 
-export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode, onToggle, onOpen }) {
+function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode, onToggle, onOpen }) {
   const [pulse, setPulse] = useState(false)
   const [showCheck, setShowCheck] = useState(false)
   const checkTimer = useRef(null)
@@ -20,17 +19,9 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
   const clickable = !unavailable && !adminMode
 
   return (
-    <motion.article
-      layout
-      variants={{
-        hidden: { opacity: 0, y: 14 },
-        show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-      }}
-      animate={pulse ? { scale: [1, 1.035, 1] } : {}}
-      transition={pulse ? { duration: 0.24, ease: 'easeInOut' } : {}}
-      onAnimationComplete={() => setPulse(false)}
-      whileHover={!unavailable ? { y: -3 } : {}}
-      className="group relative flex flex-col overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-accent/10 transition-shadow duration-300 hover:shadow-cardHover"
+    <article
+      className={`card-pika group relative flex flex-col overflow-hidden bg-card ${pulse ? 'card-pulse' : ''}`}
+      onAnimationEnd={() => setPulse(false)}
     >
       <div
         className={`relative aspect-square overflow-hidden bg-accentLight/60 ${clickable ? 'cursor-pointer' : ''}`}
@@ -42,7 +33,7 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
           <img
             src={item.image}
             alt={item.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
           />
@@ -56,7 +47,7 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
         )}
 
         {unavailable && (
-          <div className="absolute inset-0 flex items-center justify-center bg-ink/55 backdrop-blur-[1px]">
+          <div className="absolute inset-0 flex items-center justify-center bg-ink/55">
             <span className="rounded-full bg-card/95 px-3 py-1 font-sans text-xs font-semibold text-ink">
               Indisponível hoje
             </span>
@@ -88,11 +79,9 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
                 className="relative h-5 w-9 rounded-full transition-colors"
                 style={{ backgroundColor: item.available ? '#25D366' : '#C9B8A6' }}
               >
-                <motion.span
-                  layout
-                  className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow"
+                <span
+                  className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all duration-200"
                   style={{ left: item.available ? '18px' : '2px' }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               </span>
             </button>
@@ -106,7 +95,7 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
               >
                 <Minus size={16} />
               </button>
-              <span className="font-sans text-sm font-bold text-ink">{qty}</span>
+              <span className="font-sans text-sm font-semibold text-ink">{qty}</span>
               <button
                 onClick={handleAdd}
                 disabled={unavailable}
@@ -124,4 +113,24 @@ export default function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode,
               className="relative flex h-9 w-full items-center justify-center gap-1.5 rounded-full bg-accent px-3 font-sans text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:opacity-40"
             >
               <Plus size={16} /> Adicionar
-   
+              <CheckBadge show={showCheck} />
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  )
+}
+
+export default memo(ItemCard)
+
+function CheckBadge({ show }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute inset-0 flex items-center justify-center rounded-full bg-whatsapp text-white transition-opacity duration-150 ${show ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+    >
+      <Check size={16} strokeWidth={3} />
+    </span>
+  )
+}

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, animate } from 'framer-motion'
+import Lenis from 'lenis'
 import { ShoppingBag } from 'lucide-react'
-import { menuData } from './menuData'
+import { fetchMenu } from './lib/products'
 import { brl } from './utils'
 import Header from './components/Header'
 import CategoryNav from './components/CategoryNav'
 import MenuSection from './components/MenuSection'
 import CartDrawer from './components/CartDrawer'
-import AdminPanel from './components/AdminPanel'
 import ProductModal from './components/ProductModal'
 
 const AVAIL_KEY = 'voneis_availability_v1'
@@ -27,11 +27,59 @@ export default function App() {
   const [selectedId, setSelectedId] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [adminMode, setAdminMode] = useState(false)
-  const [activeId, setActiveId] = useState(menuData[0].id)
+  const [activeId, setActiveId] = useState(null)
   const [bump, setBump] = useState(0)
+
+  // Cardápio vindo do banco (Supabase)
+  const [menuData, setMenuData] = useState([])
+  const [menuLoading, setMenuLoading] = useState(true)
+
+  useEffect(() => {
+    fetchMenu()
+      .then((data) => {
+        setMenuData(data)
+        if (data.length) setActiveId(data[0].id)
+      })
+      .catch((err) => console.error('Erro ao carregar cardápio:', err))
+      .finally(() => setMenuLoading(false))
+  }, [])
 
   const sectionRefs = useRef({})
   const clickScrolling = useRef(false)
+  const lenisRef = useRef(null)
+
+  // Smooth scroll de página inteira — só em desktop com mouse (celular fica nativo)
+  useEffect(() => {
+    const lenis = new Lenis({
+      lerp: 0.05,
+      smoothWheel: true,
+      syncTouch: true,
+      syncTouchLerp: 0.055,
+      touchInertiaMultiplier: 38,
+    })
+    lenisRef.current = lenis
+
+    let rafId
+    const raf = (time) => {
+      lenis.raf(time)
+      rafId = requestAnimationFrame(raf)
+    }
+    rafId = requestAnimationFrame(raf)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      lenis.destroy()
+      lenisRef.current = null
+    }
+  }, [])
+
+  // Pausa o smooth scroll quando modal/carrinho estão abertos
+  useEffect(() => {
+    const lenis = lenisRef.current
+    if (!lenis) return
+    if (selectedId || drawerOpen) lenis.stop()
+    else lenis.start()
+  }, [selectedId, drawerOpen])
 
   useEffect(() => {
     try {
@@ -48,7 +96,7 @@ export default function App() {
           available: availability[it.id] !== undefined ? availability[it.id] : it.available,
         })),
       })),
-    [availability]
+    [availability, menuData]
   )
 
   const flatItems = useMemo(() => {
@@ -74,7 +122,7 @@ export default function App() {
     (id, qty, note) => {
       if (!flatItems[id]?.available) return
       setCart((c) => ({ ...c, [id]: (c[id] || 0) + qty }))
-      if (note && (note.colher || note.obs)) {
+      if (note && (note.colher || note.calda || note.obs)) {
         setNotes((n) => ({ ...n, [id]: note }))
       }
       setBump((b) => b + 1)
@@ -82,15 +130,30 @@ export default function App() {
     [flatItems]
   )
 
+  const setCalda = useCallback((id, calda) => {
+    setNotes((n) => ({ ...n, [id]: { ...(n[id] || {}), calda } }))
+  }, [])
+
+  const clearNote = useCallback((id) => {
+    setNotes((n) => {
+      if (!(id in n)) return n
+      const next = { ...n }
+      delete next[id]
+      return next
+    })
+  }, [])
+
   const removeItem = useCallback((id) => {
     setCart((c) => {
       const next = { ...c }
       const v = (next[id] || 0) - 1
-      if (v <= 0) delete next[id]
-      else next[id] = v
+      if (v <= 0) {
+        delete next[id]
+        clearNote(id)
+      } else next[id] = v
       return next
     })
-  }, [])
+  }, [clearNote])
 
   const deleteItem = useCallback((id) => {
     setCart((c) => {
@@ -98,7 +161,8 @@ export default function App() {
       delete next[id]
       return next
     })
-  }, [])
+    clearNote(id)
+  }, [clearNote])
 
   const toggleAvailability = useCallback((id) => {
     setAvailability((a) => {
@@ -120,6 +184,7 @@ export default function App() {
             name: it.name,
             price: it.price,
             qty,
+            catId: it.catId,
             catName: it.catName,
             emoji: it.emoji,
             note: notes[id] || null,
@@ -155,23 +220,40 @@ export default function App() {
     setActiveId(id)
     clickScrolling.current = true
     const el = sectionRefs.current[id]
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setTimeout(() => {
+    // Destrava de segurança: nunca deixa a detecção de seção presa
+    clearTimeout(scrollTo._t)
+    scrollTo._t = setTimeout(() => {
       clickScrolling.current = false
-    }, 800)
+    }, 1300)
+
+    if (el) {
+      const targetY = el.getBoundingClientRect().top + window.scrollY - 96
+      if (lenisRef.current) {
+        lenisRef.current.scrollTo(targetY, { duration: 1 })
+      } else {
+        animate(window.scrollY, targetY, {
+          duration: 0.85,
+          ease: [0.32, 0.72, 0, 1],
+          onUpdate: (v) => window.scrollTo(0, v),
+        })
+      }
+    } else {
+      clickScrolling.current = false
+    }
   }, [])
+
+  if (menuLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="font-sans text-sm text-ink/50">Carregando o cardápio…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
       <CategoryNav categories={menu} activeId={activeId} onSelect={scrollTo} />
-
-      <AdminPanel
-        adminMode={adminMode}
-        onEnter={() => setAdminMode(true)}
-        onExit={() => setAdminMode(false)}
-        onReset={resetAvailability}
-      />
 
       <main className="pb-28">
         {menu.map((cat) => (
@@ -200,6 +282,7 @@ export default function App() {
           <p className="mt-1 font-display text-base italic text-ink/55">
             Vó Neis Confeitaria — feito com amor ♥
           </p>
+          <p className="mt-1 font-sans text-[9px] text-ink/25">v2.2</p>
         </footer>
       </main>
 
@@ -210,4 +293,43 @@ export default function App() {
       />
 
       <AnimatePresence>
-      
+        {count > 0 && !adminMode && (
+          <motion.button
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 24 }}
+            onClick={() => setDrawerOpen(true)}
+            className="fixed bottom-5 right-5 z-30 flex items-center gap-3 rounded-full bg-accent py-3 pl-4 pr-5 text-white shadow-cardHover"
+            style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+          >
+            <div className="relative">
+              <ShoppingBag size={22} />
+              <motion.span
+                key={bump}
+                initial={{ scale: 1 }}
+                animate={{ scale: [1, 1.4, 1] }}
+                transition={{ duration: 0.3 }}
+                className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 font-sans text-[11px] font-bold text-accent"
+              >
+                {count}
+              </motion.span>
+            </div>
+            <span className="font-sans text-sm font-semibold">{brl(total)}</span>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      <CartDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        lines={lines}
+        total={total}
+        onAdd={addItem}
+        onRemove={removeItem}
+        onDelete={deleteItem}
+        onSetCalda={setCalda}
+      />
+    </div>
+  )
+}

@@ -7,7 +7,6 @@
 }
 
 html {
-  scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -40,4 +39,153 @@ body {
 
 @media (min-width: 1024px) {
   .menu-grid {
-    grid-template-colum
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Nome do item com altura fixa de 2 linhas — mantém todos os cards alinhados */
+.item-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.4em;
+}
+
+/* Sombra projetada 3D — leve no celular, completa no desktop */
+.card-pika {
+  border-radius: 5px;
+  box-shadow: 0 8px 16px -6px rgba(74, 44, 26, 0.28);
+}
+
+@media (min-width: 1024px) {
+  .card-pika {
+    box-shadow:
+      0 1px 2px rgba(74, 44, 26, 0.16),
+      0 10px 18px -6px rgba(74, 44, 26, 0.30),
+      0 24px 38px -14px rgba(74, 44, 26, 0.26);
+    transition: box-shadow 0.28s ease, transform 0.25s ease;
+  }
+  .card-pika:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 2px 3px rgba(74, 44, 26, 0.14),
+      0 18px 28px -8px rgba(74, 44, 26, 0.34),
+      0 38px 60px -18px rgba(74, 44, 26, 0.30);
+  }
+}
+
+/* Animaçãozinha de pulso ao adicionar (CSS puro) */
+.card-pulse {
+  animation: card-pulse 0.24s ease-in-out;
+}
+@keyframes card-pulse {
+  50% { transform: scale(1.03); }
+}
+
+/* O navegador pula a renderização das seções fora da tela */
+.menu-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 700px;
+}
+
+/* Divisão entre categorias mais aparente: faixas alternadas */
+.menu-section:nth-of-type(even) {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 12%,
+    rgba(255, 255, 255, 0.55) 88%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* Cabeçalho da seção: revelação ao entrar na tela */
+.section-head {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.section-head .ornament-line {
+  transform: scaleX(0);
+  transition: transform 0.7s ease 0.2s;
+}
+.section-head .section-badge {
+  transform: scale(0.6);
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+}
+.section-head.in-view {
+  opacity: 1;
+  transform: translateY(0);
+}
+.section-head.in-view .ornament-line {
+  transform: scaleX(1);
+}
+.section-head.in-view .section-badge {
+  transform: scale(1);
+}
+
+/* Entrada suave dos cards — só no desktop, CSS puro (zero custo de JS) */
+@media (min-width: 1024px) {
+  .menu-grid article {
+    animation: card-in 0.5s ease both;
+  }
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ornamento de seção: linha — título — linha */
+.ornament-line {
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(to right, transparent, rgba(217, 106, 133, 0.4), transparent);
+}
+
+/* ——— Desktop premium (≥1024px) ——— */
+@media (min-width: 1024px) {
+  body {
+    background:
+      radial-gradient(700px 500px at 8% 0%, rgba(217, 106, 133, 0.06), transparent 70%),
+      radial-gradient(700px 500px at 92% 30%, rgba(217, 106, 133, 0.05), transparent 70%),
+      #fdf0f3;
+  }
+
+  /* Painel central sutil para destacar o conteúdo */
+  main {
+    position: relative;
+  }
+
+  /* Títulos de seção maiores */
+  section h2 {
+    font-size: 2.4rem !important;
+  }
+}
+
+/* Scrollbar delicada no desktop */
+@media (min-width: 1024px) {
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #fdf0f3;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(217, 106, 133, 0.35);
+    border-radius: 8px;
+    border: 2px solid #fdf0f3;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(217, 106, 133, 0.55);
+  }
+}

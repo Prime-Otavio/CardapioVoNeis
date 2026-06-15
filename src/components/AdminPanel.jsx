@@ -33,7 +33,7 @@ export default function AdminPanel({ adminMode, onEnter, onExit, onReset }) {
         <button
           onClick={() => setAskPin(true)}
           aria-label="Modo administrador"
-          className="fixed bottom-4 left-4 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-card/80 text-ink/40 shadow-card backdrop-blur transition-colors hover:text-ink/70"
+          className="fixed bottom-4 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-full bg-card/80 text-ink/40 shadow-card transition-colors hover:text-ink/70"
           style={{ bottom: 'max(1rem, env(safe-area-inset-bottom))' }}
         >
           <Settings size={18} />
@@ -72,8 +72,7 @@ export default function AdminPanel({ adminMode, onEnter, onExit, onReset }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setAskPin(false)}
-              className="fixed inset-0 z-50 bg-ink/40"
-              style={{ backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+              className="fixed inset-0 z-50 bg-ink/50"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.94, y: 10 }}
