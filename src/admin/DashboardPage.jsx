@@ -120,6 +120,9 @@ export default function DashboardPage() {
         session={session}
         sales={sales}
         withdrawals={withdrawals}
+        stock={stock}
+        totais={totais}
+        estoque={estoque}
         onCancel={() => setMode('view')}
         onClosed={() => {
           setMode('view')
