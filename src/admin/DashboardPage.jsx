@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTodaySession, listDailyStock, closeCash } from '../lib/cash'
+import { listSales, computeTotals } from '../lib/sales'
 import OpenCashScreen from './OpenCashScreen'
+import NewSaleScreen from './NewSaleScreen'
 import { brl } from '../utils'
-import { CakeSlice, Sun, Lock } from 'lucide-react'
+import { CakeSlice, Sun, Lock, Plus } from 'lucide-react'
 
 const hoje = () =>
   new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -10,14 +12,19 @@ const hoje = () =>
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState(null)
-  const [opening, setOpening] = useState(false)
+  const [mode, setMode] = useState('view') // 'view' | 'opening' | 'selling'
   const [stock, setStock] = useState([])
+  const [sales, setSales] = useState([])
 
   async function reload() {
     setLoading(true)
     const s = await getTodaySession()
     setSession(s)
-    if (s) setStock(await listDailyStock(s.id))
+    if (s) {
+      const [st, sl] = await Promise.all([listDailyStock(s.id), listSales(s.id)])
+      setStock(st)
+      setSales(sl)
+    }
     setLoading(false)
   }
   useEffect(() => {
@@ -27,35 +34,27 @@ export default function DashboardPage() {
     })
   }, [])
 
-  const totals = useMemo(() => {
+  const estoque = useMemo(() => {
     const feitos = stock.reduce((s, r) => s + r.qty_initial, 0)
     const vendidos = stock.reduce((s, r) => s + r.qty_sold, 0)
-    const restantes = feitos - vendidos
-    const potencial = stock.reduce(
-      (s, r) => s + (r.qty_initial - r.qty_sold) * Number(r.products?.price ?? 0),
-      0
-    )
-    return { feitos, vendidos, restantes, potencial }
+    return { feitos, vendidos, restantes: feitos - vendidos }
   }, [stock])
 
-  if (loading) {
-    return <p className="font-sans text-sm text-ink/50">Carregando…</p>
-  }
+  const totais = useMemo(() => computeTotals(sales), [sales])
 
-  // Estado: abrindo o caixa
-  if (opening) {
+  if (loading) return <p className="font-sans text-sm text-ink/50">Carregando…</p>
+
+  if (mode === 'opening') {
     return (
       <OpenCashScreen
-        onOpened={(s) => {
-          setOpening(false)
-          setSession(s)
+        onOpened={() => {
+          setMode('view')
           reload()
         }}
       />
     )
   }
 
-  // Estado: caixa fechado (ainda não aberto hoje)
   if (!session || session.status === 'fechado') {
     const jaFechou = session?.status === 'fechado'
     return (
@@ -74,7 +73,7 @@ export default function DashboardPage() {
         </p>
         {!jaFechou && (
           <button
-            onClick={() => setOpening(true)}
+            onClick={() => setMode('opening')}
             className="mt-6 rounded-full bg-accent px-8 py-3 font-sans text-sm font-semibold text-white hover:brightness-105 active:scale-[0.98]"
           >
             Abrir caixa de hoje
@@ -84,7 +83,21 @@ export default function DashboardPage() {
     )
   }
 
-  // Estado: caixa aberto — produtos do dia
+  if (mode === 'selling') {
+    return (
+      <NewSaleScreen
+        session={session}
+        stock={stock}
+        onCancel={() => setMode('view')}
+        onDone={() => {
+          setMode('view')
+          reload()
+        }}
+      />
+    )
+  }
+
+  // Caixa aberto — visão do dia
   return (
     <div>
       <div className="mb-5 flex items-start justify-between">
@@ -95,78 +108,104 @@ export default function DashboardPage() {
             {new Date(session.opened_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
-        <button
-          onClick={async () => {
-            if (!confirm('Fechar o caixa de hoje?')) return
-            await closeCash(session.id)
-            reload()
-          }}
-          className="rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
-        >
-          Fechar caixa
-        </button>
-      </div>
-
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metric label="Feitos hoje" value={totals.feitos} />
-        <Metric label="Vendidos" value={totals.vendidos} />
-        <Metric label="Restantes" value={totals.restantes} accent />
-        <Metric label="A vender (R$)" value={brl(totals.potencial)} />
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-ink/10 bg-white">
-        <div className="flex items-center gap-2 border-b border-ink/10 px-4 py-3">
-          <CakeSlice size={16} className="text-accent" />
-          <span className="font-sans text-sm font-semibold text-ink">Produtos do dia</span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode('selling')}
+            className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 font-sans text-sm font-semibold text-white hover:brightness-105"
+          >
+            <Plus size={16} /> Nova venda
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm('Fechar o caixa de hoje?')) return
+              await closeCash(session.id)
+              reload()
+            }}
+            className="rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
+          >
+            Fechar caixa
+          </button>
         </div>
-        <table className="w-full font-sans text-sm">
-          <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wide text-ink/40">
-              <th className="px-4 py-2 font-medium">Produto</th>
-              <th className="px-4 py-2 font-medium">Feito</th>
-              <th className="px-4 py-2 font-medium">Vendido</th>
-              <th className="px-4 py-2 font-medium">Resta</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stock.map((r) => {
-              const resta = r.qty_initial - r.qty_sold
-              return (
-                <tr key={r.id} className="border-t border-ink/8">
-                  <td className="px-4 py-2.5 text-ink">{r.products?.name ?? '—'}</td>
-                  <td className="px-4 py-2.5 text-ink/70">{r.qty_initial}</td>
-                  <td className="px-4 py-2.5 text-ink/70">{r.qty_sold}</td>
-                  <td className={`px-4 py-2.5 font-semibold ${resta === 0 ? 'text-red-500' : 'text-ink'}`}>
-                    {resta}
-                  </td>
-                </tr>
-              )
-            })}
-            {stock.length === 0 && (
-              <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-ink/40">
-                  Nenhum produto no caixa de hoje.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
       </div>
 
-      <p className="mt-4 font-sans text-xs text-ink/40">
-        O lançamento de vendas (dar baixa no estoque) chega na próxima etapa.
-      </p>
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Metric label="Faturamento" value={brl(totais.faturamento)} />
+        <Metric label="Lucro" value={brl(totais.lucro)} accent />
+        <Metric label="Vendas" value={totais.nVendas} />
+        <Metric label="Ticket médio" value={brl(totais.ticket)} />
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="overflow-hidden rounded-xl border border-ink/10 bg-white">
+          <div className="flex items-center gap-2 border-b border-ink/10 px-4 py-3">
+            <CakeSlice size={16} className="text-accent" />
+            <span className="font-sans text-sm font-semibold text-ink">Produtos do dia</span>
+          </div>
+          <table className="w-full font-sans text-sm">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-ink/40">
+                <th className="px-4 py-2 font-medium">Produto</th>
+                <th className="px-4 py-2 font-medium">Feito</th>
+                <th className="px-4 py-2 font-medium">Vend.</th>
+                <th className="px-4 py-2 font-medium">Resta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stock.map((r) => {
+                const resta = r.qty_initial - r.qty_sold
+                return (
+                  <tr key={r.id} className="border-t border-ink/8">
+                    <td className="px-4 py-2.5 text-ink">{r.products?.name ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-ink/70">{r.qty_initial}</td>
+                    <td className="px-4 py-2.5 text-ink/70">{r.qty_sold}</td>
+                    <td className={`px-4 py-2.5 font-semibold ${resta === 0 ? 'text-red-500' : 'text-ink'}`}>{resta}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-ink/10 bg-white">
+          <div className="border-b border-ink/10 px-4 py-3">
+            <span className="font-sans text-sm font-semibold text-ink">Vendas de hoje</span>
+          </div>
+          {sales.length === 0 ? (
+            <p className="px-4 py-8 text-center font-sans text-sm text-ink/40">
+              Nenhuma venda ainda. Toque em “Nova venda”.
+            </p>
+          ) : (
+            <ul className="divide-y divide-ink/8">
+              {sales.map((v) => (
+                <li key={v.id} className="flex items-center justify-between px-4 py-2.5">
+                  <div>
+                    <p className="font-sans text-sm text-ink">
+                      {(v.sale_items ?? []).reduce((s, it) => s + it.qty, 0)} itens · {labelPay(v.payment_method)}
+                    </p>
+                    <p className="font-sans text-[11px] text-ink/40">
+                      {new Date(v.sold_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <span className="font-sans text-sm font-semibold text-ink">{brl(Number(v.total))}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
   )
+}
+
+function labelPay(m) {
+  return { dinheiro: 'Dinheiro', pix: 'Pix', debito: 'Débito', credito: 'Crédito' }[m] ?? m
 }
 
 function Metric({ label, value, accent }) {
   return (
     <div className="rounded-xl bg-white p-4 ring-1 ring-ink/8">
       <p className="font-sans text-xs text-ink/50">{label}</p>
-      <p className={`mt-1 font-sans text-2xl font-bold ${accent ? 'text-accent' : 'text-ink'}`}>
-        {value}
-      </p>
+      <p className={`mt-1 font-sans text-2xl font-bold ${accent ? 'text-accent' : 'text-ink'}`}>{value}</p>
     </div>
   )
 }

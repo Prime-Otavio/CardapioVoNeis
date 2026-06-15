@@ -41,7 +41,7 @@ export default function AdminLayout() {
           Em breve
         </p>
         <span className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm text-ink/30">
-          <CakeSlice size={18} /> Vendas
+          <CakeSlice size={18} /> Financeiro
         </span>
 
         <button
