@@ -180,7 +180,7 @@ export default function App() {
           const it = flatItems[id]
           if (!it) return null
           return {
-            id: Number(id),
+            id,
             name: it.name,
             price: it.price,
             qty,
