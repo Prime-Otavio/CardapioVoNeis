@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { listIngredients, saveIngredient, deleteIngredient, BASE_UNITS } from '../lib/ingredients'
 import { brl } from '../utils'
 import { Plus, Pencil, Trash2, FlaskConical, X } from 'lucide-react'
+import { usePin } from './PinGate'
 
 const emptyDraft = { name: '', purchase_unit: 'pacote', purchase_price: '', purchase_qty: '', base_unit: 'g' }
 
@@ -10,6 +11,7 @@ export default function IngredientsPage() {
   const [editing, setEditing] = useState(null) // 'new' | objeto | null
   const [draft, setDraft] = useState(emptyDraft)
   const [search, setSearch] = useState('')
+  const { requirePin } = usePin()
 
   async function reload() {
     setItems(await listIngredients())
@@ -54,10 +56,12 @@ export default function IngredientsPage() {
     reload()
   }
 
-  async function remove(id) {
-    if (!confirm('Remover este ingrediente? Ele sairá das receitas que o usam.')) return
-    await deleteIngredient(id)
-    reload()
+  function remove(id) {
+    requirePin(async () => {
+      if (!confirm('Remover este ingrediente? Ele sairá das receitas que o usam.')) return
+      await deleteIngredient(id)
+      reload()
+    }, 'Excluir um ingrediente exige o PIN do dono.')
   }
 
   function custoUnitario(i) {

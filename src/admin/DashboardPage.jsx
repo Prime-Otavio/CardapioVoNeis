@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getTodaySession, listDailyStock, listWithdrawals, addWithdrawal, reopenCash } from '../lib/cash'
-import { listSales, computeTotals } from '../lib/sales'
+import { listSales, computeTotals, deleteSale } from '../lib/sales'
 import OpenCashScreen from './OpenCashScreen'
 import NewSaleScreen from './NewSaleScreen'
 import CloseCashScreen from './CloseCashScreen'
+import { usePin } from './PinGate'
 import { brl } from '../utils'
-import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle } from 'lucide-react'
+import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle, Trash2 } from 'lucide-react'
 
 const hoje = () =>
   new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const [stock, setStock] = useState([])
   const [sales, setSales] = useState([])
   const [withdrawals, setWithdrawals] = useState([])
+  const { requirePin } = usePin()
 
   async function reload() {
     setLoading(true)
@@ -90,11 +92,12 @@ export default function DashboardPage() {
         </p>
         {jaFechou ? (
           <button
-            onClick={async () => {
-              if (!confirm('Reabrir o caixa de hoje e voltar a lançar vendas?')) return
-              await reopenCash(session.id)
-              reload()
-            }}
+            onClick={() =>
+              requirePin(async () => {
+                await reopenCash(session.id)
+                reload()
+              }, 'Reabrir o caixa de hoje exige o PIN do dono.')
+            }
             className="mt-6 rounded-full bg-accent px-8 py-3 font-sans text-sm font-semibold text-white hover:brightness-105 active:scale-[0.98]"
           >
             Reabrir caixa de hoje
@@ -241,7 +244,22 @@ export default function DashboardPage() {
                       {new Date(v.sold_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <span className="font-sans text-sm font-semibold text-ink">{brl(Number(v.total))}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="font-sans text-sm font-semibold text-ink">{brl(Number(v.total))}</span>
+                    <button
+                      onClick={() =>
+                        requirePin(async () => {
+                          if (!confirm('Excluir esta venda? O estoque será devolvido.')) return
+                          await deleteSale(v.id)
+                          reload()
+                        }, 'Excluir uma venda exige o PIN do dono.')
+                      }
+                      className="text-ink/25 hover:text-red-500"
+                      aria-label="Excluir venda"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

@@ -1,6 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { signOut } from '../lib/auth'
-import { LayoutDashboard, Package, Tags, FlaskConical, ClipboardList, Wallet, LogOut } from 'lucide-react'
+import { PinProvider } from './PinGate'
+import { LayoutDashboard, Package, Tags, FlaskConical, ClipboardList, Wallet, Settings, LogOut } from 'lucide-react'
 
 const link = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm transition-colors ${
@@ -15,6 +16,7 @@ export default function AdminLayout() {
   }
 
   return (
+    <PinProvider>
     <div className="flex min-h-screen bg-[#FAF7F4] text-ink">
       <aside className="flex w-60 flex-col gap-1 border-r border-ink/10 bg-white px-3 py-5">
         <div className="mb-5 flex items-center gap-2.5 px-2">
@@ -45,6 +47,9 @@ export default function AdminLayout() {
         <NavLink to="/admin/financeiro" className={link}>
           <Wallet size={18} /> Financeiro
         </NavLink>
+        <NavLink to="/admin/configuracoes" className={link}>
+          <Settings size={18} /> Configurações
+        </NavLink>
 
         <button
           onClick={handleLogout}
@@ -58,5 +63,6 @@ export default function AdminLayout() {
         <Outlet />
       </main>
     </div>
+    </PinProvider>
   )
 }

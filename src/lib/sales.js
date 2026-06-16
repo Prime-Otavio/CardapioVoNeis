@@ -19,6 +19,12 @@ export async function registerSale(sessionId, paymentMethod, items) {
   return data // id da venda
 }
 
+// Exclui uma venda e devolve o estoque
+export async function deleteSale(saleId) {
+  const { error } = await supabase.rpc('delete_sale', { p_sale_id: saleId })
+  if (error) throw error
+}
+
 // Lista as vendas de uma sessão de caixa, com itens
 export async function listSales(sessionId) {
   const { data, error } = await supabase

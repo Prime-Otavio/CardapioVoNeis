@@ -9,6 +9,7 @@ import {
 } from '../lib/finance'
 import { brl } from '../utils'
 import { Wallet, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
+import { usePin } from './PinGate'
 
 function currentYM() {
   const d = new Date()
@@ -28,6 +29,7 @@ export default function FinancePage() {
   const [expenses, setExpenses] = useState([])
   const [draft, setDraft] = useState(emptyDraft())
   const [showForm, setShowForm] = useState(false)
+  const { requirePin } = usePin()
 
   const range = useMemo(() => monthRange(ym), [ym])
 
@@ -58,10 +60,12 @@ export default function FinancePage() {
     reload()
   }
 
-  async function remove(id) {
-    if (!confirm('Remover este gasto?')) return
-    await deleteExpense(id)
-    reload()
+  function remove(id) {
+    requirePin(async () => {
+      if (!confirm('Remover este gasto?')) return
+      await deleteExpense(id)
+      reload()
+    }, 'Excluir um gasto exige o PIN do dono.')
   }
 
   const margem = result.faturamento > 0 ? (result.lucro / result.faturamento) * 100 : 0

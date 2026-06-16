@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { listCategories, saveCategory, deleteCategory } from '../lib/products'
 import { Plus, Trash2 } from 'lucide-react'
+import { usePin } from './PinGate'
 
 export default function CategoriesPage() {
   const [cats, setCats] = useState([])
   const [draft, setDraft] = useState({ name: '', emoji: '', sort_order: 0 })
+  const { requirePin } = usePin()
 
   async function reload() {
     setCats(await listCategories())
@@ -21,10 +23,12 @@ export default function CategoriesPage() {
     reload()
   }
 
-  async function remove(id) {
-    if (!confirm('Remover esta categoria?')) return
-    await deleteCategory(id)
-    reload()
+  function remove(id) {
+    requirePin(async () => {
+      if (!confirm('Remover esta categoria?')) return
+      await deleteCategory(id)
+      reload()
+    }, 'Excluir uma categoria exige o PIN do dono.')
   }
 
   return (

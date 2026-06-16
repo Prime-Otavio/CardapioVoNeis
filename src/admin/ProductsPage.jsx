@@ -3,11 +3,13 @@ import { listProducts, saveProduct, deleteProduct, listCategories } from '../lib
 import ProductForm from './ProductForm'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { brl } from '../utils'
+import { usePin } from './PinGate'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [editing, setEditing] = useState(null) // objeto produto | 'new' | null
+  const { requirePin } = usePin()
 
   async function reload() {
     const [p, c] = await Promise.all([listProducts(), listCategories()])
@@ -23,10 +25,12 @@ export default function ProductsPage() {
     setEditing(null)
     reload()
   }
-  async function remove(id) {
-    if (!confirm('Remover este produto?')) return
-    await deleteProduct(id)
-    reload()
+  function remove(id) {
+    requirePin(async () => {
+      if (!confirm('Remover este produto?')) return
+      await deleteProduct(id)
+      reload()
+    }, 'Excluir um produto exige o PIN do dono.')
   }
 
   function margem(p) {
