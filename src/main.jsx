@@ -11,6 +11,7 @@ import ProductsPage from './admin/ProductsPage'
 import CategoriesPage from './admin/CategoriesPage'
 import IngredientsPage from './admin/IngredientsPage'
 import RecipePage from './admin/RecipePage'
+import FinancePage from './admin/FinancePage'
 import './index.css'
 import 'lenis/dist/lenis.css'
 
@@ -34,6 +35,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="categorias" element={<CategoriesPage />} />
             <Route path="ingredientes" element={<IngredientsPage />} />
             <Route path="ficha-tecnica" element={<RecipePage />} />
+            <Route path="financeiro" element={<FinancePage />} />
           </Route>
         </Routes>
       </BrowserRouter>
