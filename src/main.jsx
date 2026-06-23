@@ -13,6 +13,7 @@ import IngredientsPage from './admin/IngredientsPage'
 import RecipePage from './admin/RecipePage'
 import FinancePage from './admin/FinancePage'
 import SettingsPage from './admin/SettingsPage'
+import OverviewPage from './admin/OverviewPage'
 import './index.css'
 import 'lenis/dist/lenis.css'
 
@@ -32,6 +33,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             element={<RequireAuth><AdminLayout /></RequireAuth>}
           >
             <Route index element={<DashboardPage />} />
+            <Route path="visao-geral" element={<OverviewPage />} />
             <Route path="produtos" element={<ProductsPage />} />
             <Route path="categorias" element={<CategoriesPage />} />
             <Route path="ingredientes" element={<IngredientsPage />} />

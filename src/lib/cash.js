@@ -74,6 +74,15 @@ export async function listDailyStock(sessionId) {
   return data
 }
 
+// Ajusta a quantidade produzida (qty_initial) de um item do estoque do dia
+export async function updateStockQty(stockId, qtyInitial) {
+  const { error } = await supabase
+    .from('daily_stock')
+    .update({ qty_initial: qtyInitial })
+    .eq('id', stockId)
+  if (error) throw error
+}
+
 // Sangrias / retiradas
 export async function addWithdrawal(sessionId, amount, reason) {
   const { error } = await supabase

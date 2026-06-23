@@ -36,6 +36,11 @@ export async function addExpense(expense) {
   if (error) throw error
 }
 
+export async function updateExpense(id, fields) {
+  const { error } = await supabase.from('expenses').update(fields).eq('id', id)
+  if (error) throw error
+}
+
 export async function deleteExpense(id) {
   const { error } = await supabase.from('expenses').delete().eq('id', id)
   if (error) throw error

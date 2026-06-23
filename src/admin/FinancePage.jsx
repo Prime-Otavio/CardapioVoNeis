@@ -4,11 +4,12 @@ import {
   monthRange,
   listExpenses,
   addExpense,
+  updateExpense,
   deleteExpense,
   financialResult,
 } from '../lib/finance'
 import { brl } from '../utils'
-import { Wallet, Plus, Trash2, TrendingUp, TrendingDown } from 'lucide-react'
+import { Wallet, Plus, Trash2, Pencil, TrendingUp, TrendingDown } from 'lucide-react'
 import { usePin } from './PinGate'
 
 function currentYM() {
@@ -29,6 +30,7 @@ export default function FinancePage() {
   const [expenses, setExpenses] = useState([])
   const [draft, setDraft] = useState(emptyDraft())
   const [showForm, setShowForm] = useState(false)
+  const [editId, setEditId] = useState(null) // id do gasto em edição
   const { requirePin } = usePin()
 
   const range = useMemo(() => monthRange(ym), [ym])
@@ -49,15 +51,32 @@ export default function FinancePage() {
     e.preventDefault()
     const amount = Number(String(draft.amount).replace(',', '.') || 0)
     if (!amount || amount <= 0) return
-    await addExpense({
+    const fields = {
       expense_date: draft.expense_date,
       category: draft.category,
       description: draft.description.trim() || null,
       amount,
-    })
+    }
+    if (editId) {
+      await updateExpense(editId, fields)
+    } else {
+      await addExpense(fields)
+    }
     setDraft(emptyDraft())
     setShowForm(false)
+    setEditId(null)
     reload()
+  }
+
+  function startEdit(exp) {
+    setDraft({
+      expense_date: exp.expense_date,
+      category: exp.category,
+      description: exp.description || '',
+      amount: String(exp.amount),
+    })
+    setEditId(exp.id)
+    setShowForm(true)
   }
 
   function remove(id) {
@@ -116,7 +135,15 @@ export default function FinancePage() {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-sans text-sm font-semibold text-ink">Gastos do mês</h3>
         <button
-          onClick={() => setShowForm((v) => !v)}
+          onClick={() => {
+            if (showForm) {
+              setShowForm(false)
+            } else {
+              setDraft(emptyDraft())
+              setEditId(null)
+              setShowForm(true)
+            }
+          }}
           className="flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 font-sans text-sm font-semibold text-white"
         >
           <Plus size={16} /> Lançar gasto
@@ -125,6 +152,9 @@ export default function FinancePage() {
 
       {showForm && (
         <form onSubmit={save} className="mb-4 rounded-2xl border border-ink/10 bg-white p-4 shadow-sm">
+          <p className="mb-3 font-sans text-sm font-semibold text-ink">
+            {editId ? 'Editar gasto' : 'Novo gasto'}
+          </p>
           <div className="mb-3 grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block font-sans text-xs text-ink/60">Data</label>
@@ -183,6 +213,7 @@ export default function FinancePage() {
               </p>
             </div>
             <span className="font-sans text-sm font-semibold text-ink">{brl(Number(e.amount))}</span>
+            <button onClick={() => startEdit(e)} className="text-ink/40 hover:text-accent"><Pencil size={15} /></button>
             <button onClick={() => remove(e.id)} className="text-ink/30 hover:text-red-500"><Trash2 size={16} /></button>
           </li>
         ))}

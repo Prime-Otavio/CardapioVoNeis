@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getTodaySession, listDailyStock, listWithdrawals, addWithdrawal, reopenCash } from '../lib/cash'
+import { getTodaySession, listDailyStock, listWithdrawals, addWithdrawal, reopenCash, updateStockQty } from '../lib/cash'
 import { listSales, computeTotals, deleteSale } from '../lib/sales'
 import OpenCashScreen from './OpenCashScreen'
 import NewSaleScreen from './NewSaleScreen'
@@ -35,6 +35,14 @@ export default function DashboardPage() {
       setWithdrawals(wd)
     }
     setLoading(false)
+  }
+
+  async function editarQtd(row) {
+    const novo = prompt(`Quantos de "${row.products?.name}" foram feitos hoje?`, String(row.qty_initial))
+    if (novo === null) return
+    const n = Math.max(0, parseInt(novo, 10) || 0)
+    await updateStockQty(row.id, n)
+    reload()
   }
 
   async function sangria() {
@@ -206,6 +214,7 @@ export default function DashboardPage() {
                 <th className="px-4 py-2 font-medium">Feito</th>
                 <th className="px-4 py-2 font-medium">Vend.</th>
                 <th className="px-4 py-2 font-medium">Resta</th>
+                <th className="px-2 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -217,6 +226,11 @@ export default function DashboardPage() {
                     <td className="px-4 py-2.5 text-ink/70">{r.qty_initial}</td>
                     <td className="px-4 py-2.5 text-ink/70">{r.qty_sold}</td>
                     <td className={`px-4 py-2.5 font-semibold ${resta === 0 ? 'text-red-500' : 'text-ink'}`}>{resta}</td>
+                    <td className="px-2 py-2.5">
+                      <button onClick={() => editarQtd(r)} className="text-ink/30 hover:text-accent" aria-label="Ajustar quantidade">
+                        <Pencil size={14} />
+                      </button>
+                    </td>
                   </tr>
                 )
               })}
