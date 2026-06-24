@@ -4,10 +4,14 @@ import { X, Plus, Minus, MessageCircle, ShoppingBag, UtensilsCrossed } from 'luc
 import { brl } from '../utils'
 import { WHATSAPP_NUMBER } from '../config'
 
-// Categorias em que faz sentido oferecer colherzinha e calda
-const SPOON_CATS = ['fatias', 'potes-copos']
-const CALDA_CATS = ['fatias', 'potes-copos']
 const CALDAS = ['Chocolate', 'Ninho']
+
+// Decide pelo NOME da categoria (ids vêm do banco como uuid).
+// Vale para fatias de bolo e potes & copos.
+function temCaldaOuColher(catName) {
+  const n = (catName || '').toLowerCase()
+  return n.includes('fatia') || n.includes('pote')
+}
 
 export default function ProductModal({ item, onClose, onAddToCart }) {
   const [qty, setQty] = useState(1)
@@ -44,8 +48,8 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
 
   if (!item) return null
 
-  const showSpoon = SPOON_CATS.includes(item.catId)
-  const showCalda = CALDA_CATS.includes(item.catId)
+  const showSpoon = temCaldaOuColher(item.catName)
+  const showCalda = temCaldaOuColher(item.catName)
   const subtotal = item.price * qty
 
   const buildDirectMessage = () => {

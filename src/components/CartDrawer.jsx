@@ -4,8 +4,13 @@ import { X, Plus, Minus, Trash2, MessageCircle } from 'lucide-react'
 import { brl } from '../utils'
 import { WHATSAPP_NUMBER } from '../config'
 
-const CALDA_CATS = ['fatias', 'potes-copos']
 const CALDAS = [null, 'Chocolate', 'Ninho']
+
+// Decide pelo NOME da categoria (ids vêm do banco como uuid)
+function temCalda(catName) {
+  const n = (catName || '').toLowerCase()
+  return n.includes('fatia') || n.includes('pote')
+}
 
 export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemove, onDelete, onSetCalda }) {
   useEffect(() => {
@@ -116,7 +121,7 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
                             <Trash2 size={16} />
                           </button>
                         </div>
-                        {CALDA_CATS.includes(l.catId) && (
+                        {temCalda(l.catName) && (
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <span className="font-sans text-[10px] text-ink/45">Calda:</span>
                             {CALDAS.map((c) => (
