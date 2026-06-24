@@ -5,6 +5,7 @@ import OpenCashScreen from './OpenCashScreen'
 import NewSaleScreen from './NewSaleScreen'
 import CloseCashScreen from './CloseCashScreen'
 import AddProductToCash from './AddProductToCash'
+import InputModal from './InputModal'
 import { usePin } from './PinGate'
 import { brl } from '../utils'
 import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle, Trash2, Pencil } from 'lucide-react'
@@ -20,6 +21,8 @@ export default function DashboardPage() {
   const [sales, setSales] = useState([])
   const [withdrawals, setWithdrawals] = useState([])
   const [addingProduct, setAddingProduct] = useState(false)
+  const [editingStock, setEditingStock] = useState(null) // row em edição
+  const [showSangria, setShowSangria] = useState(false)
   const { requirePin } = usePin()
 
   async function reload() {
@@ -39,21 +42,21 @@ export default function DashboardPage() {
     setLoading(false)
   }
 
-  async function editarQtd(row) {
-    const novo = prompt(`Quantos de "${row.products?.name}" foram feitos hoje?`, String(row.qty_initial))
-    if (novo === null) return
-    const n = Math.max(0, parseInt(novo, 10) || 0)
-    await updateStockQty(row.id, n)
+  async function confirmEditarQtd(valor) {
+    const n = Math.max(0, parseInt(valor, 10) || 0)
+    await updateStockQty(editingStock.id, n)
+    setEditingStock(null)
     reload()
   }
 
-  async function sangria() {
-    const valor = prompt('Valor da retirada (R$):')
-    if (!valor) return
+  async function confirmSangria(valor, motivo) {
     const n = Number(String(valor).replace(',', '.'))
-    if (!n || n <= 0) return
-    const motivo = prompt('Motivo da retirada (opcional):') || null
-    await addWithdrawal(session.id, n, motivo)
+    if (!n || n <= 0) {
+      setShowSangria(false)
+      return
+    }
+    await addWithdrawal(session.id, n, motivo || null)
+    setShowSangria(false)
     reload()
   }
   useEffect(() => {
@@ -181,7 +184,7 @@ export default function DashboardPage() {
             <Plus size={15} /> Add produto
           </button>
           <button
-            onClick={sangria}
+            onClick={() => setShowSangria(true)}
             className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
           >
             <ArrowDownCircle size={15} /> Sangria
@@ -235,7 +238,7 @@ export default function DashboardPage() {
                     <td className="px-4 py-2.5 text-ink/70">{r.qty_sold}</td>
                     <td className={`px-4 py-2.5 font-semibold ${resta === 0 ? 'text-red-500' : 'text-ink'}`}>{resta}</td>
                     <td className="px-2 py-2.5">
-                      <button onClick={() => editarQtd(r)} className="text-ink/30 hover:text-accent" aria-label="Ajustar quantidade">
+                      <button onClick={() => setEditingStock(r)} className="text-ink/30 hover:text-accent" aria-label="Ajustar quantidade">
                         <Pencil size={14} />
                       </button>
                     </td>
@@ -298,6 +301,33 @@ export default function DashboardPage() {
             setAddingProduct(false)
             reload()
           }}
+        />
+      )}
+
+      {editingStock && (
+        <InputModal
+          title="Ajustar quantidade"
+          label={`Quantos de "${editingStock.products?.name}" foram feitos hoje?`}
+          initial={String(editingStock.qty_initial)}
+          numeric
+          confirmLabel="Salvar"
+          onConfirm={confirmEditarQtd}
+          onClose={() => setEditingStock(null)}
+        />
+      )}
+
+      {showSangria && (
+        <InputModal
+          title="Sangria / retirada"
+          label="Valor da retirada"
+          prefix="R$"
+          placeholder="0,00"
+          numeric
+          secondLabel="Motivo (opcional)"
+          secondPlaceholder="Ex: pagar fornecedor"
+          confirmLabel="Registrar"
+          onConfirm={confirmSangria}
+          onClose={() => setShowSangria(false)}
         />
       )}
     </div>
