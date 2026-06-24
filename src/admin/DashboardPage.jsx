@@ -6,7 +6,7 @@ import NewSaleScreen from './NewSaleScreen'
 import CloseCashScreen from './CloseCashScreen'
 import { usePin } from './PinGate'
 import { brl } from '../utils'
-import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle, Trash2 } from 'lucide-react'
+import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle, Trash2, Pencil } from 'lucide-react'
 
 const hoje = () =>
   new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })
