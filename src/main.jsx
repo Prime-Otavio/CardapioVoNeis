@@ -14,6 +14,7 @@ import RecipePage from './admin/RecipePage'
 import FinancePage from './admin/FinancePage'
 import SettingsPage from './admin/SettingsPage'
 import OverviewPage from './admin/OverviewPage'
+import CombosPage from './admin/CombosPage'
 import './index.css'
 import 'lenis/dist/lenis.css'
 
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="visao-geral" element={<OverviewPage />} />
             <Route path="produtos" element={<ProductsPage />} />
             <Route path="categorias" element={<CategoriesPage />} />
+            <Route path="combos" element={<CombosPage />} />
             <Route path="ingredientes" element={<IngredientsPage />} />
             <Route path="ficha-tecnica" element={<RecipePage />} />
             <Route path="financeiro" element={<FinancePage />} />

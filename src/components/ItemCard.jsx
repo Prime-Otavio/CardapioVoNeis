@@ -49,7 +49,7 @@ function ItemCard({ item, emoji, qty, onAdd, onRemove, adminMode, onToggle, onOp
         {unavailable && (
           <div className="absolute inset-0 flex items-center justify-center bg-ink/55">
             <span className="rounded-full bg-card/95 px-3 py-1 font-sans text-xs font-semibold text-ink">
-              Indisponível hoje
+              {item.soldOut ? 'Esgotado' : 'Indisponível hoje'}
             </span>
           </div>
         )}

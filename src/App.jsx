@@ -2,13 +2,14 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence, animate } from 'framer-motion'
 import Lenis from 'lenis'
 import { ShoppingBag } from 'lucide-react'
-import { fetchMenu } from './lib/products'
+import { fetchPublicMenu } from './lib/products'
 import { brl } from './utils'
 import Header from './components/Header'
 import CategoryNav from './components/CategoryNav'
 import MenuSection from './components/MenuSection'
 import CartDrawer from './components/CartDrawer'
 import ProductModal from './components/ProductModal'
+import CombosBanner from './components/CombosBanner'
 
 const AVAIL_KEY = 'voneis_availability_v1'
 
@@ -32,13 +33,15 @@ export default function App() {
 
   // Cardápio vindo do banco (Supabase)
   const [menuData, setMenuData] = useState([])
+  const [combos, setCombos] = useState([])
   const [menuLoading, setMenuLoading] = useState(true)
 
   useEffect(() => {
-    fetchMenu()
-      .then((data) => {
-        setMenuData(data)
-        if (data.length) setActiveId(data[0].id)
+    fetchPublicMenu()
+      .then(({ menu, combos }) => {
+        setMenuData(menu)
+        setCombos(combos)
+        if (menu.length) setActiveId(menu[0].id)
       })
       .catch((err) => console.error('Erro ao carregar cardápio:', err))
       .finally(() => setMenuLoading(false))
@@ -253,6 +256,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <CombosBanner combos={combos} />
       <CategoryNav categories={menu} activeId={activeId} onSelect={scrollTo} />
 
       <main className="pb-28">

@@ -74,6 +74,29 @@ export async function listDailyStock(sessionId) {
   return data
 }
 
+// Pega as sobras do último caixa (anterior a hoje): produtos e quanto restou.
+// Retorna [{ product_id, leftover }]
+export async function getPreviousLeftovers() {
+  const today = new Date().toISOString().slice(0, 10)
+  const { data: prev, error } = await supabase
+    .from('cash_sessions')
+    .select('id, business_date')
+    .lt('business_date', today)
+    .order('business_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !prev) return []
+
+  const { data: stock } = await supabase
+    .from('daily_stock')
+    .select('product_id, qty_initial, qty_sold')
+    .eq('cash_session_id', prev.id)
+
+  return (stock ?? [])
+    .map((s) => ({ product_id: s.product_id, leftover: s.qty_initial - s.qty_sold }))
+    .filter((s) => s.leftover > 0)
+}
+
 // Ajusta a quantidade produzida (qty_initial) de um item do estoque do dia
 export async function updateStockQty(stockId, qtyInitial) {
   const { error } = await supabase

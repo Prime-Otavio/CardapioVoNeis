@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listProducts } from '../lib/products'
-import { openCash } from '../lib/cash'
+import { openCash, getPreviousLeftovers } from '../lib/cash'
 import { brl } from '../utils'
-import { Search, Plus, Minus, Check } from 'lucide-react'
+import { Search, Plus, Minus, Check, RotateCcw } from 'lucide-react'
 
 // Tela de abrir caixa: escolher os produtos feitos hoje e a quantidade de cada.
 export default function OpenCashScreen({ onOpened }) {
@@ -11,9 +11,23 @@ export default function OpenCashScreen({ onOpened }) {
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
   const [openingFloat, setOpeningFloat] = useState('')
+  const [leftovers, setLeftovers] = useState([])
 
   useEffect(() => {
     listProducts().then(setProducts).catch((e) => console.error(e))
+    getPreviousLeftovers()
+      .then((lo) => {
+        setLeftovers(lo)
+        // pré-preenche as sobras de ontem como quantidade inicial
+        if (lo.length) {
+          const seed = {}
+          lo.forEach((s) => {
+            seed[s.product_id] = s.leftover
+          })
+          setQty(seed)
+        }
+      })
+      .catch((e) => console.error(e))
   }, [])
 
   const filtered = useMemo(() => {
@@ -56,9 +70,19 @@ export default function OpenCashScreen({ onOpened }) {
   return (
     <div className="mx-auto max-w-3xl">
       <h2 className="font-display text-2xl italic text-ink">Abrir caixa de hoje</h2>
-      <p className="mb-5 font-sans text-sm text-ink/55">
+      <p className="mb-4 font-sans text-sm text-ink/55">
         Marque os produtos que você fez hoje e quantos de cada. O resto fica indisponível no dia.
       </p>
+
+      {leftovers.length > 0 && (
+        <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <RotateCcw size={18} className="mt-0.5 shrink-0 text-amber-600" />
+          <p className="font-sans text-sm text-amber-800">
+            Já preenchi as <strong>sobras do último dia</strong> ({leftovers.length} produto(s)). Confira e
+            ajuste as quantidades — adicione os que fez a mais e zere os que não tem hoje.
+          </p>
+        </div>
+      )}
 
       <div className="mb-4 flex items-center gap-2 rounded-xl border border-ink/10 bg-white px-3 py-2.5">
         <Search size={18} className="text-ink/40" />
