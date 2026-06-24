@@ -43,14 +43,13 @@ export async function fetchPublicMenu() {
       .select('id, status')
       .eq('business_date', today)
       .eq('status', 'aberto')
-      .maybeSingle()
-      .then((r) => r),
+      .maybeSingle(),
     fetchActiveCombos(),
   ])
 
   const cats = categories ?? []
   const prods = products ?? []
-  const caixaAberto = !!session?.data
+  const caixaAberto = !!session // session já é a linha (ou null)
 
   if (!caixaAberto) {
     return { menu: groupForMenu(cats, prods), combos, caixaAberto: false }
@@ -60,7 +59,7 @@ export async function fetchPublicMenu() {
   const { data: stock } = await supabase
     .from('daily_stock')
     .select('product_id, qty_initial, qty_sold')
-    .eq('cash_session_id', session.data.id)
+    .eq('cash_session_id', session.id)
 
   const stockMap = {}
   ;(stock ?? []).forEach((s) => {
