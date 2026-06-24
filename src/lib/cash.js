@@ -97,6 +97,35 @@ export async function getPreviousLeftovers() {
     .filter((s) => s.leftover > 0)
 }
 
+// Adiciona um produto ao caixa já aberto (ou soma à quantidade se já existir)
+export async function addProductToStock(sessionId, productId, qtyInitial) {
+  const today = new Date().toISOString().slice(0, 10)
+  // verifica se já existe
+  const { data: existing } = await supabase
+    .from('daily_stock')
+    .select('id, qty_initial')
+    .eq('cash_session_id', sessionId)
+    .eq('product_id', productId)
+    .maybeSingle()
+
+  if (existing) {
+    const { error } = await supabase
+      .from('daily_stock')
+      .update({ qty_initial: existing.qty_initial + qtyInitial })
+      .eq('id', existing.id)
+    if (error) throw error
+  } else {
+    const { error } = await supabase.from('daily_stock').insert({
+      cash_session_id: sessionId,
+      business_date: today,
+      product_id: productId,
+      qty_initial: qtyInitial,
+      qty_sold: 0,
+    })
+    if (error) throw error
+  }
+}
+
 // Ajusta a quantidade produzida (qty_initial) de um item do estoque do dia
 export async function updateStockQty(stockId, qtyInitial) {
   const { error } = await supabase

@@ -4,6 +4,7 @@ import { listSales, computeTotals, deleteSale } from '../lib/sales'
 import OpenCashScreen from './OpenCashScreen'
 import NewSaleScreen from './NewSaleScreen'
 import CloseCashScreen from './CloseCashScreen'
+import AddProductToCash from './AddProductToCash'
 import { usePin } from './PinGate'
 import { brl } from '../utils'
 import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle, Trash2, Pencil } from 'lucide-react'
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [stock, setStock] = useState([])
   const [sales, setSales] = useState([])
   const [withdrawals, setWithdrawals] = useState([])
+  const [addingProduct, setAddingProduct] = useState(false)
   const { requirePin } = usePin()
 
   async function reload() {
@@ -173,6 +175,12 @@ export default function DashboardPage() {
             <Plus size={16} /> Nova venda
           </button>
           <button
+            onClick={() => setAddingProduct(true)}
+            className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
+          >
+            <Plus size={15} /> Add produto
+          </button>
+          <button
             onClick={sangria}
             className="flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 font-sans text-xs text-ink/60 hover:bg-accentLight"
           >
@@ -280,6 +288,18 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {addingProduct && (
+        <AddProductToCash
+          session={session}
+          jaNoCaixa={stock.map((r) => r.product_id)}
+          onClose={() => setAddingProduct(false)}
+          onAdded={() => {
+            setAddingProduct(false)
+            reload()
+          }}
+        />
+      )}
     </div>
   )
 }
