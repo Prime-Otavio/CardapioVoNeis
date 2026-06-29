@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listProducts } from '../lib/products'
+import { listProducts, listCategories } from '../lib/products'
 import { openCash, getPreviousLeftovers } from '../lib/cash'
 import { brl } from '../utils'
 import { Search, Plus, Minus, Check, RotateCcw } from 'lucide-react'
@@ -7,6 +7,7 @@ import { Search, Plus, Minus, Check, RotateCcw } from 'lucide-react'
 // Tela de abrir caixa: escolher os produtos feitos hoje e a quantidade de cada.
 export default function OpenCashScreen({ onOpened }) {
   const [products, setProducts] = useState([])
+  const [categories, setCategories] = useState([])
   const [qty, setQty] = useState({}) // { product_id: number }
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
@@ -15,6 +16,7 @@ export default function OpenCashScreen({ onOpened }) {
 
   useEffect(() => {
     listProducts().then(setProducts).catch((e) => console.error(e))
+    listCategories().then(setCategories).catch((e) => console.error(e))
     getPreviousLeftovers()
       .then((lo) => {
         setLeftovers(lo)
@@ -35,6 +37,24 @@ export default function OpenCashScreen({ onOpened }) {
     if (!s) return products
     return products.filter((p) => p.name.toLowerCase().includes(s))
   }, [products, search])
+
+  // Agrupa os produtos filtrados por categoria, na ordem definida no painel.
+  // Produtos sem categoria caem num grupo "Sem categoria" no fim.
+  const grupos = useMemo(() => {
+    const ordenadas = [...categories].sort((a, b) => a.sort_order - b.sort_order)
+    const porId = {}
+    ordenadas.forEach((c) => {
+      porId[c.id] = { id: c.id, name: c.name, emoji: c.emoji, items: [] }
+    })
+    const semCat = { id: '__none__', name: 'Sem categoria', emoji: '📦', items: [] }
+    filtered.forEach((p) => {
+      const g = porId[p.category_id] || semCat
+      g.items.push(p)
+    })
+    const lista = ordenadas.map((c) => porId[c.id]).filter((g) => g.items.length > 0)
+    if (semCat.items.length) lista.push(semCat)
+    return lista
+  }, [filtered, categories])
 
   const selected = useMemo(
     () => Object.entries(qty).filter(([, n]) => n > 0),
@@ -94,49 +114,70 @@ export default function OpenCashScreen({ onOpened }) {
         />
       </div>
 
-      <ul className="space-y-2 pb-28">
-        {filtered.map((p) => {
-          const n = qty[p.id] || 0
-          const on = n > 0
+      <div className="space-y-6 pb-28">
+        {grupos.length === 0 && (
+          <p className="py-8 text-center font-sans text-sm text-ink/40">
+            Nenhum produto encontrado.
+          </p>
+        )}
+        {grupos.map((g) => {
+          const feitosNaSecao = g.items.reduce((s, p) => s + (qty[p.id] || 0), 0)
           return (
-            <li
-              key={p.id}
-              className={`flex items-center gap-3 rounded-xl border bg-white px-4 py-3 transition-colors ${
-                on ? 'border-accent/60' : 'border-ink/10'
-              }`}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-sans text-sm font-semibold text-ink">{p.name}</p>
-                <p className="font-sans text-xs text-ink/45">
-                  {p.categories?.name ?? 'sem categoria'} · {brl(Number(p.price))}
-                </p>
+            <section key={g.id}>
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <span className="text-lg">{g.emoji}</span>
+                <h3 className="font-display text-lg italic text-ink">{g.name}</h3>
+                {feitosNaSecao > 0 && (
+                  <span className="rounded-full bg-accentLight px-2 py-0.5 font-sans text-[11px] font-semibold text-accent">
+                    {feitosNaSecao}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => bump(p.id, -1)}
-                  aria-label="Diminuir"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-accent/40 text-accent hover:bg-accentLight active:scale-95"
-                >
-                  <Minus size={16} />
-                </button>
-                <input
-                  value={n}
-                  onChange={(e) => setExact(p.id, e.target.value)}
-                  inputMode="numeric"
-                  className="w-12 rounded-lg border border-ink/15 px-2 py-1.5 text-center font-sans text-sm"
-                />
-                <button
-                  onClick={() => bump(p.id, 1)}
-                  aria-label="Aumentar"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white hover:brightness-105 active:scale-95"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-            </li>
+              <ul className="space-y-2">
+                {g.items.map((p) => {
+                  const n = qty[p.id] || 0
+                  const on = n > 0
+                  return (
+                    <li
+                      key={p.id}
+                      className={`flex items-center gap-3 rounded-xl border bg-white px-4 py-3 transition-colors ${
+                        on ? 'border-accent/60' : 'border-ink/10'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-sans text-sm font-semibold text-ink">{p.name}</p>
+                        <p className="font-sans text-xs text-ink/45">{brl(Number(p.price))}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => bump(p.id, -1)}
+                          aria-label="Diminuir"
+                          className="flex h-9 w-9 items-center justify-center rounded-full border border-accent/40 text-accent hover:bg-accentLight active:scale-95"
+                        >
+                          <Minus size={16} />
+                        </button>
+                        <input
+                          value={n}
+                          onChange={(e) => setExact(p.id, e.target.value)}
+                          inputMode="numeric"
+                          className="w-12 rounded-lg border border-ink/15 px-2 py-1.5 text-center font-sans text-sm"
+                        />
+                        <button
+                          onClick={() => bump(p.id, 1)}
+                          aria-label="Aumentar"
+                          className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-white hover:brightness-105 active:scale-95"
+                        >
+                          <Plus size={16} />
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
           )
         })}
-      </ul>
+      </div>
 
       <div className="fixed bottom-0 left-60 right-0 border-t border-ink/10 bg-white/95 px-7 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3">

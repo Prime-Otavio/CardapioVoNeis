@@ -52,7 +52,16 @@ export async function fetchPublicMenu() {
   const caixaAberto = !!session // session já é a linha (ou null)
 
   if (!caixaAberto) {
-    return { menu: groupForMenu(cats, prods), combos, caixaAberto: false }
+    // Caixa fechado: mostra o catálogo completo.
+    // Produto inativo no painel aparece sempre como esgotado.
+    const menu = groupForMenu(cats, prods).map((cat) => ({
+      ...cat,
+      items: cat.items.map((it) => ({
+        ...it,
+        soldOut: !it.available,
+      })),
+    }))
+    return { menu, combos, caixaAberto: false }
   }
 
   // Caixa aberto: pega o estoque do dia
@@ -66,16 +75,21 @@ export async function fetchPublicMenu() {
     stockMap[s.product_id] = s.qty_initial - s.qty_sold
   })
 
-  // Só produtos que estão no caixa do dia
-  const doDia = prods.filter((p) => stockMap[p.id] !== undefined)
-  const menu = groupForMenu(cats, doDia).map((cat) => ({
+  // Mostra TODOS os produtos do catálogo. Quem não está no caixa do dia,
+  // quem zerou, ou quem está inativo no painel, aparece com tarja "Esgotado".
+  const menu = groupForMenu(cats, prods).map((cat) => ({
     ...cat,
-    items: cat.items.map((it) => ({
-      ...it,
-      available: stockMap[it.id] > 0, // esgotado se 0
-      soldOut: stockMap[it.id] <= 0,
-      remaining: stockMap[it.id],
-    })),
+    items: cat.items.map((it) => {
+      const noCaixa = stockMap[it.id] !== undefined
+      const resta = noCaixa ? stockMap[it.id] : 0
+      const disponivel = it.available && noCaixa && resta > 0
+      return {
+        ...it,
+        available: disponivel,
+        soldOut: !disponivel,
+        remaining: noCaixa ? resta : 0,
+      }
+    }),
   }))
 
   return { menu, combos, caixaAberto: true }

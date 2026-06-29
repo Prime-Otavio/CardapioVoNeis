@@ -11,23 +11,11 @@ import CartDrawer from './components/CartDrawer'
 import ProductModal from './components/ProductModal'
 import CombosBanner from './components/CombosBanner'
 
-const AVAIL_KEY = 'voneis_availability_v1'
-
 export default function App() {
-  const [availability, setAvailability] = useState(() => {
-    try {
-      const raw = localStorage.getItem(AVAIL_KEY)
-      return raw ? JSON.parse(raw) : {}
-    } catch {
-      return {}
-    }
-  })
-
   const [cart, setCart] = useState({})
   const [notes, setNotes] = useState({})
   const [selectedId, setSelectedId] = useState(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [adminMode, setAdminMode] = useState(false)
   const [activeId, setActiveId] = useState(null)
   const [bump, setBump] = useState(0)
 
@@ -84,23 +72,10 @@ export default function App() {
     else lenis.start()
   }, [selectedId, drawerOpen])
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(AVAIL_KEY, JSON.stringify(availability))
-    } catch {}
-  }, [availability])
-
-  const menu = useMemo(
-    () =>
-      menuData.map((cat) => ({
-        ...cat,
-        items: cat.items.map((it) => ({
-          ...it,
-          available: availability[it.id] !== undefined ? availability[it.id] : it.available,
-        })),
-      })),
-    [availability, menuData]
-  )
+  // A disponibilidade agora vem 100% do banco (painel + caixa do dia).
+  // O override antigo por localStorage foi removido para não "ressuscitar"
+  // produtos que o sistema marcou como esgotado.
+  const menu = menuData
 
   const flatItems = useMemo(() => {
     const map = {}
@@ -166,15 +141,6 @@ export default function App() {
     })
     clearNote(id)
   }, [clearNote])
-
-  const toggleAvailability = useCallback((id) => {
-    setAvailability((a) => {
-      const current = a[id] !== undefined ? a[id] : flatItems[id]?.available ?? true
-      return { ...a, [id]: !current }
-    })
-  }, [flatItems])
-
-  const resetAvailability = useCallback(() => setAvailability({}), [])
 
   const lines = useMemo(
     () =>
@@ -268,8 +234,6 @@ export default function App() {
             cart={cart}
             onAdd={addItem}
             onRemove={removeItem}
-            adminMode={adminMode}
-            onToggle={toggleAvailability}
             onOpen={setSelectedId}
           />
         ))}
@@ -297,7 +261,7 @@ export default function App() {
       />
 
       <AnimatePresence>
-        {count > 0 && !adminMode && (
+        {count > 0 && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
