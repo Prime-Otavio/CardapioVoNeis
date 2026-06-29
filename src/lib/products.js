@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { hojeLocal } from '../utils'
 
 export function groupForMenu(categories, products) {
   const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order)
@@ -33,7 +34,7 @@ export async function fetchMenu() {
 // - Se não há caixa aberto: mostra o catálogo completo.
 // Retorna { menu, combos, caixaAberto }.
 export async function fetchPublicMenu() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hojeLocal()
 
   const [{ data: categories }, { data: products }, { data: session }, combos] = await Promise.all([
     supabase.from('categories').select('*'),

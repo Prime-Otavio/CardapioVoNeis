@@ -8,7 +8,7 @@ import {
   deleteExpense,
   financialResult,
 } from '../lib/finance'
-import { brl } from '../utils'
+import { brl, hojeLocal } from '../utils'
 import { Wallet, Plus, Trash2, Pencil, TrendingUp, TrendingDown } from 'lucide-react'
 import { usePin } from './PinGate'
 
@@ -18,7 +18,7 @@ function currentYM() {
 }
 
 const emptyDraft = () => ({
-  expense_date: new Date().toISOString().slice(0, 10),
+  expense_date: hojeLocal(),
   category: 'Ingredientes',
   description: '',
   amount: '',

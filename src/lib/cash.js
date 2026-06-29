@@ -1,8 +1,9 @@
 import { supabase } from './supabase'
+import { hojeLocal } from '../utils'
 
 // Retorna a sessão de caixa de hoje (ou null se ainda não foi aberta)
 export async function getTodaySession() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hojeLocal()
   const { data, error } = await supabase
     .from('cash_sessions')
     .select('*')
@@ -15,7 +16,7 @@ export async function getTodaySession() {
 // Abre o caixa de hoje com os produtos escolhidos e o troco inicial.
 // items: [{ product_id, qty_initial }] · openingFloat: número
 export async function openCash(items, openingFloat = 0) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hojeLocal()
 
   const { data: session, error: sErr } = await supabase
     .from('cash_sessions')
@@ -77,7 +78,7 @@ export async function listDailyStock(sessionId) {
 // Pega as sobras do último caixa (anterior a hoje): produtos e quanto restou.
 // Retorna [{ product_id, leftover }]
 export async function getPreviousLeftovers() {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hojeLocal()
   const { data: prev, error } = await supabase
     .from('cash_sessions')
     .select('id, business_date')
@@ -99,7 +100,7 @@ export async function getPreviousLeftovers() {
 
 // Adiciona um produto ao caixa já aberto (ou soma à quantidade se já existir)
 export async function addProductToStock(sessionId, productId, qtyInitial) {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = hojeLocal()
   // verifica se já existe
   const { data: existing } = await supabase
     .from('daily_stock')
