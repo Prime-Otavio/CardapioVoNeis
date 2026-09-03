@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listCategories, saveCategory, deleteCategory, reorderCategories } from '../lib/products'
 import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react'
 import { usePin } from './PinGate'
+import { useStoreId } from './StoreContext'
 
 export default function CategoriesPage() {
   const [cats, setCats] = useState([])
@@ -10,20 +11,22 @@ export default function CategoriesPage() {
   const [editDraft, setEditDraft] = useState({ name: '', emoji: '' })
   const [erro, setErro] = useState('')
   const { requirePin } = usePin()
+  const storeId = useStoreId()
 
   async function reload() {
-    setCats(await listCategories())
+    setCats(await listCategories(storeId))
   }
   useEffect(() => {
     reload()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
   async function add(e) {
     e.preventDefault()
     if (!draft.name.trim()) return
     // entra no fim da lista, não empilhado em sort_order 0
     const fim = cats.reduce((max, c) => Math.max(max, c.sort_order ?? 0), -1) + 1
-    await saveCategory({ ...draft, name: draft.name.trim(), sort_order: fim })
+    await saveCategory({ ...draft, name: draft.name.trim(), sort_order: fim }, storeId)
     setDraft({ name: '', emoji: '' })
     reload()
   }
@@ -35,7 +38,7 @@ export default function CategoriesPage() {
 
   async function saveEdit(c) {
     if (!editDraft.name.trim()) return
-    await saveCategory({ id: c.id, name: editDraft.name.trim(), emoji: editDraft.emoji, sort_order: c.sort_order })
+    await saveCategory({ id: c.id, name: editDraft.name.trim(), emoji: editDraft.emoji, sort_order: c.sort_order }, storeId)
     setEditId(null)
     reload()
   }

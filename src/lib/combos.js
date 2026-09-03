@@ -1,10 +1,11 @@
 import { supabase } from './supabase'
 
 // Lista combos com seus itens (para painel e cardápio)
-export async function listCombos({ onlyActive = false } = {}) {
+export async function listCombos(storeId, { onlyActive = false } = {}) {
   let q = supabase
     .from('combos')
     .select('*, combo_items(quantity, product_id, products(name))')
+    .eq('store_id', storeId)
     .order('sort_order')
   if (onlyActive) q = q.eq('active', true)
   const { data, error } = await q
@@ -13,14 +14,14 @@ export async function listCombos({ onlyActive = false } = {}) {
 }
 
 // Salva um combo inteiro: dados + itens (apaga e regrava os itens)
-export async function saveCombo(combo, items) {
+export async function saveCombo(combo, items, storeId) {
   const { id, ...fields } = combo
   let comboId = id
   if (id) {
     const { error } = await supabase.from('combos').update(fields).eq('id', id)
     if (error) throw error
   } else {
-    const { data, error } = await supabase.from('combos').insert(fields).select().single()
+    const { data, error } = await supabase.from('combos').insert({ ...fields, store_id: storeId }).select().single()
     if (error) throw error
     comboId = data.id
   }

@@ -4,24 +4,40 @@ import ProductForm from './ProductForm'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { brl } from '../utils'
 import { usePin } from './PinGate'
+import { useStoreId } from './StoreContext'
+import { listOptionGroups, listProductGroupLinks, setProductGroups } from '../lib/options'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
+  const [optionGroups, setOptionGroups] = useState([])
+  const [links, setLinks] = useState({})
   const [editing, setEditing] = useState(null) // objeto produto | 'new' | null
   const { requirePin } = usePin()
+  const storeId = useStoreId()
 
   async function reload() {
-    const [p, c] = await Promise.all([listProducts(), listCategories()])
+    const [p, c, g, l] = await Promise.all([
+      listProducts(storeId),
+      listCategories(storeId),
+      listOptionGroups(storeId),
+      listProductGroupLinks(),
+    ])
     setProducts(p)
     setCategories(c)
+    setOptionGroups(g)
+    setLinks(l)
   }
   useEffect(() => {
     reload()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
-  async function handleSave(data) {
-    await saveProduct(data)
+  async function handleSave(data, groupIds = []) {
+    await saveProduct(data, storeId)
+    // Produto novo ainda não tem id aqui; os adicionais dele são ligados na
+    // próxima edição (ou em lote pela tela Adicionais).
+    if (data.id) await setProductGroups(data.id, groupIds)
     setEditing(null)
     reload()
   }
@@ -54,6 +70,8 @@ export default function ProductsPage() {
       {editing ? (
         <ProductForm
           categories={categories}
+          optionGroups={optionGroups}
+          initialGroupIds={editing === 'new' ? [] : (links[editing.id] ?? [])}
           initial={editing === 'new' ? null : editing}
           onSave={handleSave}
           onCancel={() => setEditing(null)}

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 
-export default function Header() {
+export default function Header({ store }) {
   return (
     <header className="relative overflow-hidden bg-accentLight">
       {/* Enfeites suaves de fundo */}
@@ -55,6 +55,12 @@ export default function Header() {
             <span className="select-none text-sm text-accent/60">♥</span>
             <span className="ornament-line" aria-hidden="true" />
           </div>
+
+          {store?.address && (
+            <p className="mt-2 font-sans text-xs text-ink/50">
+              {store.name.replace('Vó Neis — ', '')} · {store.address}
+            </p>
+          )}
 
           <p className="mx-auto mt-3 max-w-md font-sans text-sm leading-relaxed text-ink/60 lg:max-w-lg lg:text-base">
             Bolos e doces feitos à mão, com carinho de vó.

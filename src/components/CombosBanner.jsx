@@ -1,10 +1,9 @@
 import { motion } from 'framer-motion'
 import { Gift, MessageCircle } from 'lucide-react'
 import { brl } from '../utils'
-import { WHATSAPP_NUMBER } from '../config'
 
 // Faixa de combos em destaque no topo do cardápio. Clicar pede pelo WhatsApp.
-export default function CombosBanner({ combos }) {
+export default function CombosBanner({ combos, whatsapp }) {
   if (!combos || combos.length === 0) return null
 
   function pedir(c) {
@@ -14,7 +13,8 @@ export default function CombosBanner({ combos }) {
     })
     if (c.description) msg += `\n_${c.description}_\n`
     msg += '\nAguardo confirmação! 😊'
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank')
+    if (!whatsapp) return
+    window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   return (

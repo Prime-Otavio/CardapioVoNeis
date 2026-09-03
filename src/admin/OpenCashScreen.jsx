@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listProducts, listCategories } from '../lib/products'
 import { openCash, getPreviousLeftovers } from '../lib/cash'
+import { useStoreId } from './StoreContext'
 import { brl } from '../utils'
 import { Search, Plus, Minus, Check, RotateCcw } from 'lucide-react'
 
@@ -13,11 +14,12 @@ export default function OpenCashScreen({ onOpened }) {
   const [busy, setBusy] = useState(false)
   const [openingFloat, setOpeningFloat] = useState('')
   const [leftovers, setLeftovers] = useState([])
+  const storeId = useStoreId()
 
   useEffect(() => {
-    listProducts().then(setProducts).catch((e) => console.error(e))
-    listCategories().then(setCategories).catch((e) => console.error(e))
-    getPreviousLeftovers()
+    listProducts(storeId).then(setProducts).catch((e) => console.error(e))
+    listCategories(storeId).then(setCategories).catch((e) => console.error(e))
+    getPreviousLeftovers(storeId)
       .then((lo) => {
         setLeftovers(lo)
         // pré-preenche as sobras de ontem como quantidade inicial
@@ -30,7 +32,8 @@ export default function OpenCashScreen({ onOpened }) {
         }
       })
       .catch((e) => console.error(e))
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase()
@@ -78,7 +81,7 @@ export default function OpenCashScreen({ onOpened }) {
     try {
       const items = selected.map(([product_id, qty_initial]) => ({ product_id, qty_initial }))
       const floatNum = openingFloat === '' ? 0 : Number(openingFloat)
-      const session = await openCash(items, floatNum)
+      const session = await openCash(items, floatNum, storeId)
       onOpened(session)
     } catch (e) {
       console.error(e)

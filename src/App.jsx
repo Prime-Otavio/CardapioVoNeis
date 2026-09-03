@@ -3,7 +3,9 @@ import { motion, AnimatePresence, animate } from 'framer-motion'
 import Lenis from 'lenis'
 import { ShoppingBag } from 'lucide-react'
 import { fetchPublicMenu } from './lib/products'
+import { resolvePublicStore } from './lib/stores'
 import { brl } from './utils'
+import { WHATSAPP_NUMBER } from './config'
 import Header from './components/Header'
 import CategoryNav from './components/CategoryNav'
 import MenuSection from './components/MenuSection'
@@ -23,10 +25,16 @@ export default function App() {
   const [menuData, setMenuData] = useState([])
   const [combos, setCombos] = useState([])
   const [menuLoading, setMenuLoading] = useState(true)
+  const [store, setStore] = useState(null)
 
+  // Qual loja este cardápio mostra: ?loja=<slug>, senão VITE_STORE_SLUG,
+  // senão a loja principal ativa. Cada unidade tem catálogo e WhatsApp próprios.
   useEffect(() => {
-    fetchPublicMenu()
-      .then(({ menu, combos }) => {
+    resolvePublicStore(window.location.search)
+      .then(async (loja) => {
+        setStore(loja)
+        if (!loja) return
+        const { menu, combos } = await fetchPublicMenu(loja.id)
         setMenuData(menu)
         setCombos(combos)
         if (menu.length) setActiveId(menu[0].id)
@@ -100,7 +108,7 @@ export default function App() {
     (id, qty, note) => {
       if (!flatItems[id]?.available) return
       setCart((c) => ({ ...c, [id]: (c[id] || 0) + qty }))
-      if (note && (note.colher || note.calda || note.obs)) {
+      if (note && (note.colher || note.calda || note.obs || note.options?.length)) {
         setNotes((n) => ({ ...n, [id]: note }))
       }
       setBump((b) => b + 1)
@@ -148,15 +156,19 @@ export default function App() {
         .map(([id, qty]) => {
           const it = flatItems[id]
           if (!it) return null
+          const note = notes[id] || null
+          const extras = (note?.options ?? []).reduce((s, o) => s + (o.extraPrice || 0), 0)
           return {
             id,
             name: it.name,
-            price: it.price,
+            price: it.price + extras,
+            basePrice: it.price,
+            optionGroups: it.optionGroups ?? [],
             qty,
             catId: it.catId,
             catName: it.catName,
             emoji: it.emoji,
-            note: notes[id] || null,
+            note,
           }
         })
         .filter(Boolean),
@@ -211,6 +223,12 @@ export default function App() {
     }
   }, [])
 
+  // Loja resolvida manda no número. Sem loja no banco (rede fora, tabela
+  // vazia), cai no número do config para o site nunca ficar sem pedido.
+  // Loja resolvida mas sem WhatsApp — caso da Loja 2 antes de inaugurar —
+  // é null de propósito: os botões de pedido se desativam sozinhos.
+  const whatsapp = store ? store.whatsapp : WHATSAPP_NUMBER
+
   if (menuLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -221,8 +239,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <CombosBanner combos={combos} />
+      <Header store={store} />
+      <CombosBanner combos={combos} whatsapp={whatsapp} />
       <CategoryNav categories={menu} activeId={activeId} onSelect={scrollTo} />
 
       <main className="pb-28">
@@ -258,6 +276,7 @@ export default function App() {
         item={selectedId ? flatItems[selectedId] : null}
         onClose={() => setSelectedId(null)}
         onAddToCart={addWithOptions}
+        whatsapp={whatsapp}
       />
 
       <AnimatePresence>
@@ -297,6 +316,7 @@ export default function App() {
         onRemove={removeItem}
         onDelete={deleteItem}
         onSetCalda={setCalda}
+        whatsapp={whatsapp}
       />
     </div>
   )

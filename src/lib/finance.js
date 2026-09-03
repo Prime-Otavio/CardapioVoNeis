@@ -20,10 +20,11 @@ export function monthRange(ym) {
   return { start, end }
 }
 
-export async function listExpenses(start, end) {
+export async function listExpenses(start, end, storeId) {
   const { data, error } = await supabase
     .from('expenses')
     .select('*')
+    .eq('store_id', storeId)
     .gte('expense_date', start)
     .lte('expense_date', end)
     .order('expense_date', { ascending: false })
@@ -31,8 +32,8 @@ export async function listExpenses(start, end) {
   return data
 }
 
-export async function addExpense(expense) {
-  const { error } = await supabase.from('expenses').insert(expense)
+export async function addExpense(expense, storeId) {
+  const { error } = await supabase.from('expenses').insert({ ...expense, store_id: storeId })
   if (error) throw error
 }
 
@@ -46,7 +47,9 @@ export async function deleteExpense(id) {
   if (error) throw error
 }
 
-// Resultado financeiro do período (usa a função do banco)
+// Resultado financeiro do período (usa a função do banco).
+// ⚠️ financial_result() ainda não recebe loja: com a Loja 2 operando, soma as
+// duas. Corrigir no banco antes da inauguração (ver README, seção multi-loja).
 export async function financialResult(start, end) {
   const { data, error } = await supabase.rpc('financial_result', { p_start: start, p_end: end })
   if (error) throw error

@@ -2,11 +2,15 @@ import { useState } from 'react'
 import { uploadProductImage } from '../lib/storage'
 import { Upload, X, ImageIcon } from 'lucide-react'
 
-export default function ProductForm({ categories, initial, onSave, onCancel }) {
+export default function ProductForm({ categories, optionGroups = [], initialGroupIds = [], initial, onSave, onCancel }) {
   const [form, setForm] = useState(
     initial ?? { name: '', price: 0, cost: 0, unit: 'fatia', description: '', image_url: '', category_id: '', active: true }
   )
   const [uploading, setUploading] = useState(false)
+  const [groupIds, setGroupIds] = useState(initialGroupIds)
+
+  const toggleGroup = (id) =>
+    setGroupIds((gs) => (gs.includes(id) ? gs.filter((g) => g !== id) : [...gs, id]))
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
   async function handleFile(e) {
@@ -26,7 +30,7 @@ export default function ProductForm({ categories, initial, onSave, onCancel }) {
 
   function submit(e) {
     e.preventDefault()
-    onSave({ ...form, price: Number(form.price), cost: Number(form.cost) })
+    onSave({ ...form, price: Number(form.price), cost: Number(form.cost) }, groupIds)
   }
 
   return (
@@ -89,6 +93,31 @@ export default function ProductForm({ categories, initial, onSave, onCancel }) {
           </div>
         </div>
       </div>
+      {optionGroups.length > 0 && (
+        <fieldset>
+          <legend className="mb-1 block text-sm text-ink/70">Adicionais deste produto</legend>
+          <p className="mb-2 text-xs text-ink/40">
+            O cliente escolhe na hora do pedido. Para aplicar de uma vez numa categoria inteira,
+            use a tela Adicionais.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {optionGroups.map((g) => (
+              <button
+                type="button"
+                key={g.id}
+                onClick={() => toggleGroup(g.id)}
+                className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
+                  groupIds.includes(g.id)
+                    ? 'border-accent bg-accent text-white'
+                    : 'border-accent/30 text-ink/60 hover:bg-accentLight'
+                }`}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
       <div className="flex gap-2">
         <button type="submit" className="rounded-full bg-accent px-5 py-2 text-sm font-semibold text-white">Salvar</button>
         <button type="button" onClick={onCancel} className="rounded-full border border-accent/30 px-5 py-2 text-sm text-ink/70">Cancelar</button>

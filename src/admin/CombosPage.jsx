@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listCombos, saveCombo, deleteCombo } from '../lib/combos'
 import { listProducts } from '../lib/products'
+import { useStoreId } from './StoreContext'
 import { brl } from '../utils'
 import { Gift, Plus, Pencil, Trash2, X, Check } from 'lucide-react'
 import { usePin } from './PinGate'
@@ -13,16 +14,18 @@ export default function CombosPage() {
   const [editing, setEditing] = useState(null) // 'new' | combo | null
   const [draft, setDraft] = useState(emptyCombo())
   const [rows, setRows] = useState([{ product_id: '', quantity: '' }])
+  const storeId = useStoreId()
   const { requirePin } = usePin()
 
   async function reload() {
-    const [c, p] = await Promise.all([listCombos(), listProducts()])
+    const [c, p] = await Promise.all([listCombos(storeId), listProducts(storeId)])
     setCombos(c)
     setProducts(p)
   }
   useEffect(() => {
     reload().catch((e) => console.error(e))
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
   function openNew() {
     setDraft(emptyCombo())
@@ -56,7 +59,7 @@ export default function CombosPage() {
       active: draft.active,
       image_url: draft.image_url.trim() || null,
     }
-    await saveCombo(combo, rows)
+    await saveCombo(combo, rows, storeId)
     setEditing(null)
     reload()
   }

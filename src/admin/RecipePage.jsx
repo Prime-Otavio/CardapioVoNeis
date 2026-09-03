@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listProducts } from '../lib/products'
+import { useStoreId } from './StoreContext'
 import { listIngredients, getRecipe, saveRecipe } from '../lib/ingredients'
 import { brl } from '../utils'
 import { ClipboardList, Plus, Trash2, Search, Check } from 'lucide-react'
@@ -12,15 +13,17 @@ export default function RecipePage() {
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
   const [savedMsg, setSavedMsg] = useState(false)
+  const storeId = useStoreId()
 
   useEffect(() => {
-    Promise.all([listProducts(), listIngredients()])
+    Promise.all([listProducts(storeId), listIngredients()])
       .then(([p, i]) => {
         setProducts(p)
         setIngredients(i)
       })
       .catch((e) => console.error(e))
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
   const ingById = useMemo(() => {
     const m = {}

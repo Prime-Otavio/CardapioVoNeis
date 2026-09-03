@@ -7,6 +7,7 @@ import CloseCashScreen from './CloseCashScreen'
 import AddProductToCash from './AddProductToCash'
 import InputModal from './InputModal'
 import { usePin } from './PinGate'
+import { useStoreId } from './StoreContext'
 import { brl } from '../utils'
 import { CakeSlice, Sun, Lock, Plus, ArrowDownCircle, Trash2, Pencil } from 'lucide-react'
 
@@ -24,10 +25,11 @@ export default function DashboardPage() {
   const [editingStock, setEditingStock] = useState(null) // row em edição
   const [showSangria, setShowSangria] = useState(false)
   const { requirePin } = usePin()
+  const storeId = useStoreId()
 
   async function reload() {
     setLoading(true)
-    const s = await getTodaySession()
+    const s = await getTodaySession(storeId)
     setSession(s)
     if (s) {
       const [st, sl, wd] = await Promise.all([
@@ -64,7 +66,8 @@ export default function DashboardPage() {
       console.error(e)
       setLoading(false)
     })
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
   const estoque = useMemo(() => {
     const feitos = stock.reduce((s, r) => s + r.qty_initial, 0)
