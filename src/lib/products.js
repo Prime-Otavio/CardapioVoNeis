@@ -1,6 +1,34 @@
 import { supabase } from './supabase'
 import { hojeLocal } from '../utils'
 
+// O cardápio público lê como `anon`, e o `anon` NÃO tem select em products.*
+// — o grant é por coluna, justamente para `cost` não vazar (migration 0016).
+// Por isso a lista de colunas é explícita: um `select('*')` volta como erro de
+// permissão. Coluna nova só pode entrar aqui depois de entrar no grant.
+const COLUNAS_PUBLICAS =
+  'id, store_id, category_id, name, description, price, unit, image_url, active, on_menu, sold_out, featured, sort_order, created_at'
+
+// Colunas que já existiam antes das migrations 0014/0015. Nomear uma coluna que
+// não existe derruba a query inteira — e aqui isso significaria cardápio fora do
+// ar para o cliente. Como o repo não reproduz o schema atual do banco (as
+// migrations 0013–0018 foram aplicadas fora dele), a leitura cai para esta
+// lista se a primeira falhar, em vez de apagar a página.
+const COLUNAS_LEGADO =
+  'id, category_id, name, description, price, unit, image_url, active, sort_order, created_at'
+
+async function lerProdutosPublicos() {
+  const nova = await supabase.from('products').select(COLUNAS_PUBLICAS).order('name')
+  if (!nova.error) return nova.data ?? []
+
+  console.warn(
+    'Cardápio: a leitura com as colunas novas falhou, usando o formato antigo.',
+    nova.error.message
+  )
+  const antiga = await supabase.from('products').select(COLUNAS_LEGADO).order('name')
+  if (antiga.error) throw antiga.error
+  return antiga.data ?? []
+}
+
 export function groupForMenu(categories, products) {
   const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order)
   return sorted.map((cat) => ({
@@ -15,17 +43,19 @@ export function groupForMenu(categories, products) {
         price: Number(p.price),
         desc: p.description,
         image: p.image_url,
-        available: p.active,
+        // sold_out é o "acabou hoje" do balcão (migration 0015); em bancos
+        // antigos a coluna não existe e o campo vem undefined — daí o !== true.
+        available: p.active && p.sold_out !== true,
       })),
   }))
 }
 
 export async function fetchMenu() {
-  const [{ data: categories }, { data: products }] = await Promise.all([
+  const [{ data: categories }, products] = await Promise.all([
     supabase.from('categories').select('*'),
-    supabase.from('products').select('*').order('name'),
+    lerProdutosPublicos(),
   ])
-  return groupForMenu(categories ?? [], products ?? [])
+  return groupForMenu(categories ?? [], products)
 }
 
 // Cardápio público inteligente:
@@ -36,9 +66,9 @@ export async function fetchMenu() {
 export async function fetchPublicMenu() {
   const today = hojeLocal()
 
-  const [{ data: categories }, { data: products }, { data: session }, combos] = await Promise.all([
+  const [{ data: categories }, produtos, { data: session }, combos] = await Promise.all([
     supabase.from('categories').select('*'),
-    supabase.from('products').select('*').order('name'),
+    lerProdutosPublicos(),
     supabase
       .from('cash_sessions')
       .select('id, status')
@@ -49,7 +79,9 @@ export async function fetchPublicMenu() {
   ])
 
   const cats = categories ?? []
-  const prods = products ?? []
+  // on_menu controla o que aparece para o cliente; o produto pode existir no
+  // PDV e ficar fora do cardápio online. Coluna nova: undefined = mostra.
+  const prods = produtos.filter((p) => p.on_menu !== false)
   const caixaAberto = !!session // session já é a linha (ou null)
 
   if (!caixaAberto) {
@@ -146,5 +178,26 @@ export async function saveCategory(category) {
 
 export async function deleteCategory(id) {
   const { error } = await supabase.from('categories').delete().eq('id', id)
+  if (error) throw error
+}
+
+// Catálogo do painel, escopado por loja (migration 0014). Quando storeId é
+// null o banco ainda é de loja única e não há o que filtrar.
+export async function listCatalog(storeId) {
+  const cats = supabase.from('categories').select('*').order('sort_order')
+  const prods = supabase.from('products').select('*').order('sort_order').order('name')
+  const [c, p] = await Promise.all([
+    storeId ? cats.eq('store_id', storeId) : cats,
+    storeId ? prods.eq('store_id', storeId) : prods,
+  ])
+  if (c.error) throw c.error
+  if (p.error) throw p.error
+  return { categorias: c.data ?? [], produtos: p.data ?? [] }
+}
+
+// "Esgotou" é a ação mais usada do dia. Só toca uma coluna de propósito:
+// o produto continua no cardápio, apenas marcado como indisponível.
+export async function setSoldOut(id, soldOut) {
+  const { error } = await supabase.from('products').update({ sold_out: soldOut }).eq('id', id)
   if (error) throw error
 }

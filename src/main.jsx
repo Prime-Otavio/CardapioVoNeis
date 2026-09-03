@@ -15,6 +15,9 @@ import FinancePage from './admin/FinancePage'
 import SettingsPage from './admin/SettingsPage'
 import OverviewPage from './admin/OverviewPage'
 import CombosPage from './admin/CombosPage'
+import BalcaoPage from './admin/BalcaoPage'
+import OptionsPage from './admin/OptionsPage'
+import IfoodPage from './admin/IfoodPage'
 import './index.css'
 import 'lenis/dist/lenis.css'
 
@@ -34,6 +37,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             element={<RequireAuth><AdminLayout /></RequireAuth>}
           >
             <Route index element={<DashboardPage />} />
+            <Route path="balcao" element={<BalcaoPage />} />
+            <Route path="adicionais" element={<OptionsPage />} />
+            <Route path="ifood" element={<IfoodPage />} />
             <Route path="visao-geral" element={<OverviewPage />} />
             <Route path="produtos" element={<ProductsPage />} />
             <Route path="categorias" element={<CategoriesPage />} />

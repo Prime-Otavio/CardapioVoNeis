@@ -1,5 +1,11 @@
 # Handoff: Painel de Gestão Vó Neis Confeitaria (ERP + cardápio)
 
+> ⚠️ Este documento é de **28/06/2026**. Há um handoff mais recente e com números
+> conferidos no banco em [`HANDOFF-2026-09-03.md`](./HANDOFF-2026-09-03.md) —
+> multi-loja, adicionais, fila do iFood, três estados do produto
+> (`active` / `on_menu` / `sold_out`) e as correções de segurança. Em caso de
+> conflito, vale o mais novo.
+
 **Data:** 2026-06-28
 **Status:** Em andamento — sistema funcional no ar; última tarefa entregue (upload de fotos) aguardando deploy pelo usuário, e tratamento de fotos aguardando o usuário enviar os arquivos.
 

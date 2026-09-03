@@ -10,6 +10,11 @@ export default {
         accent: '#D96A85',
         accentLight: '#FBE0E6',
         whatsapp: '#25D366',
+        // Disponível x esgotado — precisam ler à distância, em loja iluminada.
+        folha: '#167A56',
+        folhaLight: '#E4F1EB',
+        mel: '#B87503',
+        melLight: '#FBF0DC',
       },
       fontFamily: {
         display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
