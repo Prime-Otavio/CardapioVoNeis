@@ -20,10 +20,16 @@ export function groupForMenu(categories, products) {
   }))
 }
 
+// O anon nao tem select em products inteiro: a migration 0016 tirou o grant
+// da tabela e devolveu coluna a coluna, para o custo nao vazar no cardapio.
+// Por isso o lado publico pede colunas explicitas em vez de '*' — coluna nova
+// so entra aqui se o cardapio realmente precisar dela.
+const COLUNAS_PUBLICAS = 'id, category_id, name, description, price, image_url, active'
+
 export async function fetchMenu(storeId) {
   const [{ data: categories }, { data: products }] = await Promise.all([
     supabase.from('categories').select('*').eq('store_id', storeId),
-    supabase.from('products').select('*').eq('store_id', storeId).order('name'),
+    supabase.from('products').select(COLUNAS_PUBLICAS).eq('store_id', storeId).order('name'),
   ])
   return groupForMenu(categories ?? [], products ?? [])
 }
@@ -71,7 +77,7 @@ export async function fetchPublicMenu(storeId) {
   const [{ data: categories }, { data: products }, { data: session }, combos, optionsByProduct] =
     await Promise.all([
       supabase.from('categories').select('*').eq('store_id', storeId),
-      supabase.from('products').select('*').eq('store_id', storeId).order('name'),
+      supabase.from('products').select(COLUNAS_PUBLICAS).eq('store_id', storeId).order('name'),
       supabase
         .from('cash_sessions')
         .select('id, status')
