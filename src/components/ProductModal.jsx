@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Minus, MessageCircle, ShoppingBag, UtensilsCrossed } from 'lucide-react'
 import { brl } from '../utils'
-import { WHATSAPP_NUMBER } from '../config'
 
 const CALDAS = ['Chocolate', 'Ninho']
 
@@ -13,11 +12,13 @@ function temCaldaOuColher(catName) {
   return n.includes('fatia') || n.includes('pote')
 }
 
-export default function ProductModal({ item, onClose, onAddToCart }) {
+export default function ProductModal({ item, onClose, onAddToCart, whatsapp }) {
   const [qty, setQty] = useState(1)
   const [colher, setColher] = useState(false)
   const [calda, setCalda] = useState(null)
   const [obs, setObs] = useState('')
+  // Escolhas de adicionais vindas do banco: { [groupId]: [optionId, ...] }
+  const [escolhas, setEscolhas] = useState({})
 
   const open = !!item
 
@@ -27,6 +28,7 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
       setColher(false)
       setCalda(null)
       setObs('')
+      setEscolhas({})
     }
   }, [open, item?.id])
 
@@ -48,13 +50,40 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
 
   if (!item) return null
 
+  const grupos = item.optionGroups ?? []
   const showSpoon = temCaldaOuColher(item.catName)
-  const showCalda = temCaldaOuColher(item.catName)
-  const subtotal = item.price * qty
+  // A calda fixa no código só aparece para produto que ainda não tem grupo
+  // cadastrado no painel — assim nada some do cardápio na transição.
+  const showCalda = grupos.length === 0 && temCaldaOuColher(item.catName)
+
+  const escolhidas = grupos.flatMap((g) =>
+    (escolhas[g.id] ?? [])
+      .map((oid) => {
+        const o = g.options.find((x) => x.id === oid)
+        return o ? { groupName: g.name, name: o.name, extraPrice: o.extraPrice } : null
+      })
+      .filter(Boolean),
+  )
+  const extras = escolhidas.reduce((s, o) => s + o.extraPrice, 0)
+  const faltaObrigatorio = grupos.some((g) => g.required && !(escolhas[g.id] ?? []).length)
+  const subtotal = (item.price + extras) * qty
+
+  // maxSelect 1 troca a escolha; acima disso marca e desmarca até o limite.
+  const escolher = (g, oid) =>
+    setEscolhas((e) => {
+      const atual = e[g.id] ?? []
+      if (g.maxSelect <= 1) return { ...e, [g.id]: atual[0] === oid ? [] : [oid] }
+      if (atual.includes(oid)) return { ...e, [g.id]: atual.filter((x) => x !== oid) }
+      if (atual.length >= g.maxSelect) return e
+      return { ...e, [g.id]: [...atual, oid] }
+    })
 
   const buildDirectMessage = () => {
     let msg = '🍰 *Olá! Gostaria de fazer um pedido:*\n\n'
     msg += `- ${qty}x ${item.name} — ${brl(subtotal)}\n`
+    escolhidas.forEach((o) => {
+      msg += `✨ ${o.groupName}: ${o.name}${o.extraPrice > 0 ? ` (+${brl(o.extraPrice)})` : ''}\n`
+    })
     if (showCalda && calda) msg += `🍫 Calda: ${calda}\n`
     if (showSpoon && colher) msg += '🥄 Com colherzinha, por favor\n'
     if (obs.trim()) msg += `📝 Obs: ${obs.trim()}\n`
@@ -63,7 +92,8 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
   }
 
   const orderNow = () => {
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildDirectMessage())}`
+    if (!whatsapp) return
+    const url = `https://wa.me/${whatsapp}?text=${encodeURIComponent(buildDirectMessage())}`
     window.open(url, '_blank')
   }
 
@@ -71,6 +101,7 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
     onAddToCart(item.id, qty, {
       colher: showSpoon && colher,
       calda: showCalda ? calda : null,
+      options: escolhidas,
       obs: obs.trim(),
     })
     onClose()
@@ -150,6 +181,37 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
                 </div>
               </div>
 
+              {grupos.map((g) => (
+                <div key={g.id} className="mt-3 rounded-2xl bg-card p-3 shadow-card">
+                  <p className="font-sans text-sm font-medium text-ink/70">
+                    {g.name}
+                    <span className="ml-1 text-xs text-ink/40">
+                      {g.required ? '(escolha obrigatória)' : g.maxSelect > 1 ? `(até ${g.maxSelect})` : '(opcional)'}
+                    </span>
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {g.options.map((o) => {
+                      const marcada = (escolhas[g.id] ?? []).includes(o.id)
+                      return (
+                        <button
+                          key={o.id}
+                          onClick={() => escolher(g, o.id)}
+                          aria-pressed={marcada}
+                          className={`flex-1 rounded-full border px-3 py-2 font-sans text-xs font-semibold transition-colors ${
+                            marcada
+                              ? 'border-accent bg-accent text-white'
+                              : 'border-accent/30 bg-background text-ink/60 hover:bg-accentLight'
+                          }`}
+                        >
+                          {o.name}
+                          {o.extraPrice > 0 && ` +${brl(o.extraPrice)}`}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+
               {showCalda && (
                 <div className="mt-3 rounded-2xl bg-card p-3 shadow-card">
                   <p className="font-sans text-sm font-medium text-ink/70">Calda por cima?</p>
@@ -214,16 +276,18 @@ export default function ProductModal({ item, onClose, onAddToCart }) {
               <div className="flex gap-2">
                 <button
                   onClick={addToCart}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-accent py-3 font-sans text-sm font-semibold text-accent transition-transform active:scale-[0.98]"
+                  disabled={faltaObrigatorio}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full border-2 border-accent py-3 font-sans text-sm font-semibold text-accent transition-transform active:scale-[0.98] disabled:opacity-40"
                 >
                   <ShoppingBag size={17} /> Adicionar · {brl(subtotal)}
                 </button>
                 <button
                   onClick={orderNow}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-sans text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+                  disabled={faltaObrigatorio || !whatsapp}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-sans text-sm font-semibold text-white transition-transform active:scale-[0.98] disabled:opacity-40"
                   style={{ backgroundColor: '#25D366' }}
                 >
-                  <MessageCircle size={17} /> Pedir agora
+                  <MessageCircle size={17} /> {whatsapp ? 'Pedir agora' : 'Em breve'}
                 </button>
               </div>
             </div>

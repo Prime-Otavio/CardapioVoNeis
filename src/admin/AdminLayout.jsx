@@ -1,7 +1,9 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { signOut } from '../lib/auth'
 import { PinProvider } from './PinGate'
-import { LayoutDashboard, BarChart3, Package, Tags, Gift, FlaskConical, ClipboardList, Wallet, Settings, LogOut } from 'lucide-react'
+import { StoreProvider } from './StoreContext'
+import StoreSwitcher from './StoreSwitcher'
+import { LayoutDashboard, BarChart3, Package, Tags, Gift, ListPlus, FlaskConical, ClipboardList, Wallet, Settings, LogOut } from 'lucide-react'
 
 const link = ({ isActive }) =>
   `flex items-center gap-3 rounded-lg px-3 py-2.5 font-sans text-sm transition-colors ${
@@ -16,6 +18,7 @@ export default function AdminLayout() {
   }
 
   return (
+    <StoreProvider>
     <PinProvider>
     <div className="flex min-h-screen bg-[#FAF7F4] text-ink">
       <aside className="flex w-60 flex-col gap-1 border-r border-ink/10 bg-white px-3 py-5">
@@ -28,6 +31,8 @@ export default function AdminLayout() {
             <p className="font-sans text-[11px] text-ink/40">Painel de gestão</p>
           </div>
         </div>
+
+        <StoreSwitcher />
 
         <NavLink to="/admin" end className={link}>
           <LayoutDashboard size={18} /> Painel
@@ -43,6 +48,9 @@ export default function AdminLayout() {
         </NavLink>
         <NavLink to="/admin/combos" className={link}>
           <Gift size={18} /> Combos
+        </NavLink>
+        <NavLink to="/admin/adicionais" className={link}>
+          <ListPlus size={18} /> Adicionais
         </NavLink>
         <NavLink to="/admin/ingredientes" className={link}>
           <FlaskConical size={18} /> Ingredientes
@@ -70,5 +78,6 @@ export default function AdminLayout() {
       </main>
     </div>
     </PinProvider>
+    </StoreProvider>
   )
 }

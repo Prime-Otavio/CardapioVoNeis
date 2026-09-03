@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { listProducts } from '../lib/products'
+import { useStoreId } from './StoreContext'
 import { addProductToStock } from '../lib/cash'
 import { brl } from '../utils'
 import { Search, X, Plus, Check } from 'lucide-react'
@@ -11,10 +12,12 @@ export default function AddProductToCash({ session, jaNoCaixa = [], onAdded, onC
   const [selId, setSelId] = useState(null)
   const [qty, setQty] = useState('')
   const [busy, setBusy] = useState(false)
+  const storeId = useStoreId()
 
   useEffect(() => {
-    listProducts().then(setProducts).catch((e) => console.error(e))
-  }, [])
+    listProducts(storeId).then(setProducts).catch((e) => console.error(e))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeId])
 
   const jaSet = useMemo(() => new Set(jaNoCaixa), [jaNoCaixa])
 
@@ -28,7 +31,7 @@ export default function AddProductToCash({ session, jaNoCaixa = [], onAdded, onC
     if (!selId || !qty || Number(qty) <= 0) return
     setBusy(true)
     try {
-      await addProductToStock(session.id, selId, parseInt(qty, 10))
+      await addProductToStock(session.id, selId, parseInt(qty, 10), storeId)
       onAdded()
     } catch (e) {
       console.error(e)

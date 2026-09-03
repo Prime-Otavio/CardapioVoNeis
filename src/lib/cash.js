@@ -2,11 +2,12 @@ import { supabase } from './supabase'
 import { hojeLocal } from '../utils'
 
 // Retorna a sessão de caixa de hoje (ou null se ainda não foi aberta)
-export async function getTodaySession() {
+export async function getTodaySession(storeId) {
   const today = hojeLocal()
   const { data, error } = await supabase
     .from('cash_sessions')
     .select('*')
+    .eq('store_id', storeId)
     .eq('business_date', today)
     .maybeSingle()
   if (error) throw error
@@ -15,18 +16,19 @@ export async function getTodaySession() {
 
 // Abre o caixa de hoje com os produtos escolhidos e o troco inicial.
 // items: [{ product_id, qty_initial }] · openingFloat: número
-export async function openCash(items, openingFloat = 0) {
+export async function openCash(items, openingFloat = 0, storeId) {
   const today = hojeLocal()
 
   const { data: session, error: sErr } = await supabase
     .from('cash_sessions')
-    .insert({ business_date: today, status: 'aberto', opening_float: openingFloat })
+    .insert({ store_id: storeId, business_date: today, status: 'aberto', opening_float: openingFloat })
     .select()
     .single()
   if (sErr) throw sErr
 
   if (items.length) {
     const rows = items.map((it) => ({
+      store_id: storeId,
       cash_session_id: session.id,
       business_date: today,
       product_id: it.product_id,
@@ -77,11 +79,12 @@ export async function listDailyStock(sessionId) {
 
 // Pega as sobras do último caixa (anterior a hoje): produtos e quanto restou.
 // Retorna [{ product_id, leftover }]
-export async function getPreviousLeftovers() {
+export async function getPreviousLeftovers(storeId) {
   const today = hojeLocal()
   const { data: prev, error } = await supabase
     .from('cash_sessions')
     .select('id, business_date')
+    .eq('store_id', storeId)
     .lt('business_date', today)
     .order('business_date', { ascending: false })
     .limit(1)
@@ -99,7 +102,7 @@ export async function getPreviousLeftovers() {
 }
 
 // Adiciona um produto ao caixa já aberto (ou soma à quantidade se já existir)
-export async function addProductToStock(sessionId, productId, qtyInitial) {
+export async function addProductToStock(sessionId, productId, qtyInitial, storeId) {
   const today = hojeLocal()
   // verifica se já existe
   const { data: existing } = await supabase
@@ -117,6 +120,7 @@ export async function addProductToStock(sessionId, productId, qtyInitial) {
     if (error) throw error
   } else {
     const { error } = await supabase.from('daily_stock').insert({
+      store_id: storeId,
       cash_session_id: sessionId,
       business_date: today,
       product_id: productId,

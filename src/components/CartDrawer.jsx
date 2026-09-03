@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Minus, Trash2, MessageCircle } from 'lucide-react'
 import { brl } from '../utils'
-import { WHATSAPP_NUMBER } from '../config'
 
 const CALDAS = [null, 'Chocolate', 'Ninho']
 
@@ -12,7 +11,7 @@ function temCalda(catName) {
   return n.includes('fatia') || n.includes('pote')
 }
 
-export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemove, onDelete, onSetCalda }) {
+export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemove, onDelete, onSetCalda, whatsapp }) {
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     if (open) {
@@ -39,6 +38,9 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
       msg += `\n*${emoji} ${catName}*\n`
       rows.forEach((r) => {
         msg += `- ${r.qty}x ${r.name} — ${brl(r.qty * r.price)}\n`
+        ;(r.note?.options ?? []).forEach((o) => {
+          msg += `  ✨ ${o.groupName}: ${o.name}${o.extraPrice > 0 ? ` (+${brl(o.extraPrice)})` : ''}\n`
+        })
         if (r.note?.calda) msg += `  🍫 Calda: ${r.note.calda}\n`
         if (r.note?.colher) msg += `  🥄 Com colherzinha\n`
         if (r.note?.obs) msg += `  📝 Obs: ${r.note.obs}\n`
@@ -51,7 +53,8 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
   }
 
   const sendWhatsApp = () => {
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(buildMessage())}`
+    if (!whatsapp) return
+    const url = `https://wa.me/${whatsapp}?text=${encodeURIComponent(buildMessage())}`
     window.open(url, '_blank')
   }
 
@@ -121,7 +124,13 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
                             <Trash2 size={16} />
                           </button>
                         </div>
-                        {temCalda(l.catName) && (
+                        {(l.note?.options ?? []).length > 0 && (
+                          <p className="mt-1 font-sans text-[11px] text-ink/45">
+                            ✨ {l.note.options.map((o) => `${o.groupName}: ${o.name}`).join(' · ')}
+                          </p>
+                        )}
+                        {/* Calda fixa: só para item que ainda não tem grupo no painel */}
+                        {(l.optionGroups ?? []).length === 0 && temCalda(l.catName) && (
                           <div className="mt-2 flex flex-wrap items-center gap-1.5">
                             <span className="font-sans text-[10px] text-ink/45">Calda:</span>
                             {CALDAS.map((c) => (
@@ -192,10 +201,12 @@ export default function CartDrawer({ open, onClose, lines, total, onAdd, onRemov
                 </div>
                 <button
                   onClick={sendWhatsApp}
-                  className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-sans text-base font-semibold text-white transition-transform active:scale-[0.98]"
+                  disabled={!whatsapp}
+                  className="flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-sans text-base font-semibold text-white transition-transform active:scale-[0.98] disabled:opacity-40"
                   style={{ backgroundColor: '#25D366' }}
                 >
-                  <MessageCircle size={20} /> Pedir via WhatsApp
+                  <MessageCircle size={20} />{' '}
+                  {whatsapp ? 'Pedir via WhatsApp' : 'Esta loja ainda não recebe pedidos'}
                 </button>
               </div>
             )}

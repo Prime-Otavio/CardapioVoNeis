@@ -11,6 +11,7 @@ test('chama onSave com os dados preenchidos', () => {
   fireEvent.change(screen.getByLabelText('Categoria'), { target: { value: 'c1' } })
   fireEvent.click(screen.getByText('Salvar'))
   expect(onSave).toHaveBeenCalledWith(
-    expect.objectContaining({ name: 'Ninho', price: 18, category_id: 'c1' })
+    expect.objectContaining({ name: 'Ninho', price: 18, category_id: 'c1' }),
+    []
   )
 })

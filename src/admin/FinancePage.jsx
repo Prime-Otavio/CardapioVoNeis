@@ -11,6 +11,7 @@ import {
 import { brl, hojeLocal } from '../utils'
 import { Wallet, Plus, Trash2, Pencil, TrendingUp, TrendingDown } from 'lucide-react'
 import { usePin } from './PinGate'
+import { useStoreId } from './StoreContext'
 
 function currentYM() {
   const d = new Date()
@@ -32,20 +33,22 @@ export default function FinancePage() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState(null) // id do gasto em edição
   const { requirePin } = usePin()
+  const storeId = useStoreId()
 
   const range = useMemo(() => monthRange(ym), [ym])
 
   async function reload() {
     const [res, exp] = await Promise.all([
       financialResult(range.start, range.end),
-      listExpenses(range.start, range.end),
+      listExpenses(range.start, range.end, storeId),
     ])
     setResult(res)
     setExpenses(exp)
   }
   useEffect(() => {
     reload().catch((e) => console.error(e))
-  }, [ym])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ym, storeId])
 
   async function save(e) {
     e.preventDefault()
@@ -60,7 +63,7 @@ export default function FinancePage() {
     if (editId) {
       await updateExpense(editId, fields)
     } else {
-      await addExpense(fields)
+      await addExpense(fields, storeId)
     }
     setDraft(emptyDraft())
     setShowForm(false)
