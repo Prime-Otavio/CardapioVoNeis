@@ -148,3 +148,13 @@ export async function deleteCategory(id) {
   const { error } = await supabase.from('categories').delete().eq('id', id)
   if (error) throw error
 }
+
+// Grava a ordem das categorias na sequência em que os ids chegam.
+// Uma linha por categoria — são poucas, não vale um RPC.
+export async function reorderCategories(ids) {
+  const results = await Promise.all(
+    ids.map((id, i) => supabase.from('categories').update({ sort_order: i }).eq('id', id)),
+  )
+  const falhou = results.find((r) => r.error)
+  if (falhou) throw falhou.error
+}
