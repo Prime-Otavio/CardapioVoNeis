@@ -17,3 +17,15 @@ test('agrupa produtos por categoria no formato do cardapio', () => {
   expect(menu[0].items[0]).toMatchObject({ id: 'p1', price: 18, available: true })
   expect(menu[0].items[1].available).toBe(false)
 })
+
+test('produto esgotado hoje entra na lista, mas indisponivel', () => {
+  const categories = [{ id: 'c1', name: 'Fatias', emoji: '🎂', sort_order: 0 }]
+  const products = [
+    { id: 'p1', category_id: 'c1', name: 'Ninho', price: 18, active: true, sold_out: true },
+    { id: 'p2', category_id: 'c1', name: 'Limão', price: 18, active: true, sold_out: false },
+  ]
+  const [cat] = groupForMenu(categories, products)
+  expect(cat.items.map((i) => i.name)).toEqual(['Ninho', 'Limão'])
+  expect(cat.items[0].available).toBe(false)
+  expect(cat.items[1].available).toBe(true)
+})

@@ -1,5 +1,5 @@
 export const brl = (value) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 // Data de "hoje" no fuso do Brasil (America/Sao_Paulo), no formato YYYY-MM-DD.
 // Não usar new Date().toISOString() para isso: o toISOString() devolve UTC,
